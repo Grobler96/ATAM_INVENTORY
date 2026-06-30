@@ -103,6 +103,94 @@
     margin: 32px 0 14px;
   }
 
+  .attention-section {
+    margin-bottom: 28px;
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 14px;
+    background: rgba(239,68,68,0.04);
+    overflow: hidden;
+  }
+  .attention-header {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(239,68,68,0.08);
+    border-bottom: 1px solid rgba(239,68,68,0.2);
+  }
+  .attention-header .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 6px #ef4444;
+    animation: attn-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes attn-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .attention-header strong {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #f87171;
+  }
+  .attention-header span {
+    font-size: 12px;
+    color: #94a3b8;
+    margin-left: auto;
+  }
+  .attention-body { padding: 6px 12px; }
+  .attention-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    font-size: 13px;
+  }
+  .attention-row:last-child { border-bottom: none; }
+  .attention-row .attn-name { flex: 1; color: #e8edf5; font-weight: 600; }
+  .attention-row .attn-meta { color: #64748b; font-size: 12px; }
+  .attention-empty {
+    padding: 18px 20px;
+    color: #4ade80;
+    font-size: 13px;
+    text-align: center;
+  }
+
+  .supplier-section { margin-bottom: 30px; }
+  .supplier-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid #1e2d45;
+    margin-bottom: 10px;
+  }
+  .supplier-header .chevron {
+    font-size: 12px;
+    color: #64748b;
+    transition: transform 0.2s ease;
+    width: 12px;
+  }
+  .supplier-section.collapsed .chevron { transform: rotate(-90deg); }
+  .supplier-header h2 {
+    font-size: 15px;
+    font-weight: 800;
+    color: #f8fafc;
+    margin: 0;
+    flex: 1;
+  }
+  .supplier-header .supplier-count {
+    font-size: 12px;
+    color: #64748b;
+    font-weight: 600;
+  }
+  .supplier-products {
+    display: block;
+  }
+  .supplier-section.collapsed .supplier-products { display: none; }
+
   .controls-row {
     display: flex;
     gap: 12px;
@@ -318,7 +406,9 @@
     </div>
   </div>
 
-  <div class="section-title">Stock levels</div>
+  <div id="attentionSection"></div>
+
+  <div class="section-title">Stock levels by supplier</div>
 
   <div class="controls-row">
     <input id="searchInput" type="search" placeholder="Search product, SKU, color, supplier..." />
@@ -345,6 +435,7 @@
   let currentFilter = 'all';
   let searchTerm = '';
   const openProducts = new Set();
+  const collapsedSuppliers = new Set();
 
   function $(id) { return document.getElementById(id); }
   function esc(v) {
@@ -443,7 +534,126 @@
     });
   }
 
+  function renderAttentionSection() {
+    const critical = allRows
+      .filter(r => r.inv_lvl <= 0)
+      .sort((a, b) => (a.product_name || '').localeCompare(b.product_name || ''))
+      .slice(0, 12);
+
+    const el = $('attentionSection');
+    if (critical.length === 0) {
+      el.innerHTML = `
+        <div class="attention-section">
+          <div class="attention-header"><span class="dot" style="background:#4ade80;box-shadow:0 0 6px #4ade80;"></span><strong>Needs attention</strong></div>
+          <div class="attention-empty">Nothing out of stock right now.</div>
+        </div>
+      `;
+      return;
+    }
+
+    const totalOut = allRows.filter(r => r.inv_lvl <= 0).length;
+
+    el.innerHTML = `
+      <div class="attention-section">
+        <div class="attention-header">
+          <span class="dot"></span>
+          <strong>Needs attention</strong>
+          <span>${totalOut} SKU${totalOut === 1 ? '' : 's'} out of stock</span>
+        </div>
+        <div class="attention-body">
+          ${critical.map(r => `
+            <div class="attention-row">
+              <span class="attn-name">${esc(r.product_name)}</span>
+              <span class="attn-meta">${esc(r.color_name || '')} ${esc(r.size_code || '')} &middot; ${esc(r.sku || '')} &middot; ${esc(r.supplier || '')}</span>
+            </div>
+          `).join('')}
+          ${totalOut > 12 ? `<div class="attention-row"><span class="attn-meta">+ ${totalOut - 12} more out of stock — use the Out of stock filter below to see all</span></div>` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  function buildProductCardHtml(g) {
+    const isOpen = openProducts.has(g.product_id);
+
+    const allSizeCodes = [...new Set(g.variations.map(v => v.size_code).filter(Boolean))];
+    const sizeCols = sortSizeCodes(allSizeCodes);
+    const hasNoSizes = sizeCols.length === 0;
+
+    const colorGroups = {};
+    for (const v of g.variations) {
+      const colorKey = v.color_name || '—';
+      if (!colorGroups[colorKey]) colorGroups[colorKey] = {};
+      const sizeKey = v.size_code || '_NOSIZE';
+      colorGroups[colorKey][sizeKey] = v;
+    }
+    const colorNames = Object.keys(colorGroups).sort();
+
+    const headerCols = hasNoSizes
+      ? '<th>On hand</th>'
+      : sizeCols.map(s => `<th>${esc(s)}</th>`).join('');
+
+    const bodyRows = colorNames.map(colorName => {
+      const sizesForColor = colorGroups[colorName];
+      const baseSkuSample = Object.values(sizesForColor)[0]?.sku || '';
+
+      if (hasNoSizes) {
+        const v = sizesForColor['_NOSIZE'];
+        return `
+          <tr>
+            <td class="color-cell">${esc(colorName)}<span class="sku-base">${esc(baseSkuSample)}</span></td>
+            <td><span class="stock-pill ${stockPillClass(v)}">${num(v.inv_lvl)}</span></td>
+          </tr>
+        `;
+      }
+
+      const cells = sizeCols.map(sizeCode => {
+        const v = sizesForColor[sizeCode];
+        if (!v) return '<td><span class="stock-pill na">—</span></td>';
+        return `<td><span class="stock-pill ${stockPillClass(v)}" title="${esc(v.sku)}">${num(v.inv_lvl)}</span></td>`;
+      }).join('');
+
+      return `
+        <tr>
+          <td class="color-cell">${esc(colorName)}<span class="sku-base">${esc(g.product_code || '')}</span></td>
+          ${cells}
+        </tr>
+      `;
+    }).join('');
+
+    return `
+      <div class="product-card ${isOpen ? 'open' : ''}" data-product-id="${esc(g.product_id)}">
+        <div class="product-header" data-toggle="${esc(g.product_id)}">
+          <span class="product-chevron">&#9656;</span>
+          <div class="product-info">
+            <div class="product-name">${esc(g.product_name)}</div>
+            <div class="product-meta">${esc(g.product_code || '')} &middot; ${colorNames.length} colour${colorNames.length === 1 ? '' : 's'}</div>
+          </div>
+          <div class="product-stats">
+            ${g.low_count > 0 ? '<span class="low-stock-badge">' + g.low_count + ' low</span>' : ''}
+            <div class="product-stat">
+              <div class="val">${num(g.total_stock)}</div>
+              <div class="lbl">Total units</div>
+            </div>
+          </div>
+        </div>
+        <div class="variations-wrap">
+          <table class="variations-table">
+            <thead>
+              <tr><th>Colour</th>${headerCols}</tr>
+            </thead>
+            <tbody>
+              ${bodyRows}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }
+
   function render() {
+    renderAttentionSection();
+
     const totalSkus = allRows.length;
     const totalUnits = allRows.reduce((s, r) => s + Number(r.inv_lvl || 0), 0);
     const lowStock = allRows.filter(r => r.inv_lvl <= r.inv_warn).length;
@@ -462,83 +672,44 @@
       return;
     }
 
-    list.innerHTML = filtered.map(g => {
-      const isOpen = openProducts.has(g.product_id);
+    const bySupplier = {};
+    for (const g of filtered) {
+      const key = g.supplier || 'Unknown supplier';
+      if (!bySupplier[key]) bySupplier[key] = [];
+      bySupplier[key].push(g);
+    }
+    const supplierNames = Object.keys(bySupplier).sort((a, b) => bySupplier[b].length - bySupplier[a].length);
 
-      const allSizeCodes = [...new Set(g.variations.map(v => v.size_code).filter(Boolean))];
-      const sizeCols = sortSizeCodes(allSizeCodes);
-      const hasNoSizes = sizeCols.length === 0;
-
-      const colorGroups = {};
-      for (const v of g.variations) {
-        const colorKey = v.color_name || '—';
-        if (!colorGroups[colorKey]) colorGroups[colorKey] = {};
-        const sizeKey = v.size_code || '_NOSIZE';
-        colorGroups[colorKey][sizeKey] = v;
-      }
-      const colorNames = Object.keys(colorGroups).sort();
-
-      const headerCols = hasNoSizes
-        ? '<th>On hand</th>'
-        : sizeCols.map(s => `<th>${esc(s)}</th>`).join('');
-
-      const bodyRows = colorNames.map(colorName => {
-        const sizesForColor = colorGroups[colorName];
-        const baseSkuSample = Object.values(sizesForColor)[0]?.sku || '';
-
-        if (hasNoSizes) {
-          const v = sizesForColor['_NOSIZE'];
-          return `
-            <tr>
-              <td class="color-cell">${esc(colorName)}<span class="sku-base">${esc(baseSkuSample)}</span></td>
-              <td><span class="stock-pill ${stockPillClass(v)}">${num(v.inv_lvl)}</span></td>
-            </tr>
-          `;
-        }
-
-        const cells = sizeCols.map(sizeCode => {
-          const v = sizesForColor[sizeCode];
-          if (!v) return '<td><span class="stock-pill na">—</span></td>';
-          return `<td><span class="stock-pill ${stockPillClass(v)}" title="${esc(v.sku)}">${num(v.inv_lvl)}</span></td>`;
-        }).join('');
-
-        return `
-          <tr>
-            <td class="color-cell">${esc(colorName)}<span class="sku-base">${esc(g.product_code || '')}</span></td>
-            ${cells}
-          </tr>
-        `;
-      }).join('');
+    list.innerHTML = supplierNames.map(supplierName => {
+      const products = bySupplier[supplierName];
+      const isCollapsed = collapsedSuppliers.has(supplierName);
+      const productCardsHtml = products.map(g => buildProductCardHtml(g)).join('');
 
       return `
-        <div class="product-card ${isOpen ? 'open' : ''}" data-product-id="${esc(g.product_id)}">
-          <div class="product-header" data-toggle="${esc(g.product_id)}">
-            <span class="product-chevron">&#9656;</span>
-            <div class="product-info">
-              <div class="product-name">${esc(g.product_name)}</div>
-              <div class="product-meta">${esc(g.product_code || '')} &middot; ${esc(g.supplier || 'Unknown supplier')} &middot; ${colorNames.length} colour${colorNames.length === 1 ? '' : 's'}</div>
-            </div>
-            <div class="product-stats">
-              ${g.low_count > 0 ? '<span class="low-stock-badge">' + g.low_count + ' low</span>' : ''}
-              <div class="product-stat">
-                <div class="val">${num(g.total_stock)}</div>
-                <div class="lbl">Total units</div>
-              </div>
-            </div>
+        <div class="supplier-section ${isCollapsed ? 'collapsed' : ''}" data-supplier="${esc(supplierName)}">
+          <div class="supplier-header" data-supplier-toggle="${esc(supplierName)}">
+            <span class="chevron">&#9662;</span>
+            <h2>${esc(supplierName)}</h2>
+            <span class="supplier-count">${products.length} product${products.length === 1 ? '' : 's'}</span>
           </div>
-          <div class="variations-wrap">
-            <table class="variations-table">
-              <thead>
-                <tr><th>Colour</th>${headerCols}</tr>
-              </thead>
-              <tbody>
-                ${bodyRows}
-              </tbody>
-            </table>
-          </div>
+          <div class="supplier-products">${productCardsHtml}</div>
         </div>
       `;
     }).join('');
+
+    list.querySelectorAll('[data-supplier-toggle]').forEach(header => {
+      header.onclick = () => {
+        const key = header.dataset.supplierToggle;
+        const section = header.closest('.supplier-section');
+        if (collapsedSuppliers.has(key)) {
+          collapsedSuppliers.delete(key);
+          section.classList.remove('collapsed');
+        } else {
+          collapsedSuppliers.add(key);
+          section.classList.add('collapsed');
+        }
+      };
+    });
 
     list.querySelectorAll('[data-toggle]').forEach(header => {
       header.onclick = () => {
