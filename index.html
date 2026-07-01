@@ -414,7 +414,6 @@
     <input id="searchInput" type="search" placeholder="Search product, SKU, color, supplier..." />
     <button class="filter-chip active" data-filter="all">All</button>
     <button class="filter-chip" data-filter="low">Low stock</button>
-    <button class="filter-chip" data-filter="zero">Out of stock</button>
   </div>
 
   <div id="productList"></div>
@@ -458,6 +457,7 @@
         .select('*')
         .eq('product_deleted', false)
         .eq('sku_deleted', false)
+        .gt('inv_lvl', 0)
         .order('product_name', { ascending: true });
 
       if (error) throw error;
@@ -504,13 +504,11 @@
   function matchesFilter(group, filter) {
     if (filter === 'all') return true;
     if (filter === 'low') return group.variations.some(v => v.inv_lvl > 0 && v.inv_lvl <= v.inv_warn);
-    if (filter === 'zero') return group.variations.some(v => v.inv_lvl === 0);
     return true;
   }
 
   function stockPillClass(v) {
-    if (v.inv_lvl <= 0) return 'zero';
-    if (v.inv_lvl <= v.inv_warn) return 'low';
+    if (v.inv_lvl <= 2) return 'low';
     return 'ok';
   }
 
@@ -536,8 +534,8 @@
 
   function renderAttentionSection() {
     const critical = allRows
-      .filter(r => r.inv_lvl <= 0)
-      .sort((a, b) => (a.product_name || '').localeCompare(b.product_name || ''))
+      .filter(r => r.inv_lvl <= 2)
+      .sort((a, b) => a.inv_lvl - b.inv_lvl)
       .slice(0, 12);
 
     const el = $('attentionSection');
@@ -545,29 +543,30 @@
       el.innerHTML = `
         <div class="attention-section">
           <div class="attention-header"><span class="dot" style="background:#4ade80;box-shadow:0 0 6px #4ade80;"></span><strong>Needs attention</strong></div>
-          <div class="attention-empty">Nothing out of stock right now.</div>
+          <div class="attention-empty">No SKUs critically low right now.</div>
         </div>
       `;
       return;
     }
 
-    const totalOut = allRows.filter(r => r.inv_lvl <= 0).length;
+    const totalCritical = allRows.filter(r => r.inv_lvl <= 2).length;
 
     el.innerHTML = `
       <div class="attention-section">
         <div class="attention-header">
           <span class="dot"></span>
-          <strong>Needs attention</strong>
-          <span>${totalOut} SKU${totalOut === 1 ? '' : 's'} out of stock</span>
+          <strong>Needs attention — 2 or fewer units</strong>
+          <span>${totalCritical} SKU${totalCritical === 1 ? '' : 's'}</span>
         </div>
         <div class="attention-body">
           ${critical.map(r => `
             <div class="attention-row">
               <span class="attn-name">${esc(r.product_name)}</span>
-              <span class="attn-meta">${esc(r.color_name || '')} ${esc(r.size_code || '')} &middot; ${esc(r.sku || '')} &middot; ${esc(r.supplier || '')}</span>
+              <span class="attn-meta">${esc(r.color_name || '')} ${esc(r.size_code || '')} &middot; ${esc(r.sku || '')}</span>
+              <span class="stock-pill low" style="flex-shrink:0">${num(r.inv_lvl)}</span>
             </div>
           `).join('')}
-          ${totalOut > 12 ? `<div class="attention-row"><span class="attn-meta">+ ${totalOut - 12} more out of stock — use the Out of stock filter below to see all</span></div>` : ''}
+          ${totalCritical > 12 ? `<div class="attention-row"><span class="attn-meta">+ ${totalCritical - 12} more critically low</span></div>` : ''}
         </div>
       </div>
     `;
