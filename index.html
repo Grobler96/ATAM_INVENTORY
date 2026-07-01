@@ -4,375 +4,116 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ATAM Stock</title>
-
 <style>
   * { box-sizing: border-box; }
-  body {
-    background: #020617;
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    color: #e8edf5;
-  }
+  body { background: #020617; margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #e8edf5; }
 
   .topbar {
-    position: sticky;
-    top: 0;
-    z-index: 50;
-    background: rgba(2, 6, 23, 0.92);
-    backdrop-filter: blur(20px);
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(2,6,23,0.95); backdrop-filter: blur(20px);
     border-bottom: 1px solid rgba(255,255,255,0.06);
-    padding: 18px 32px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-wrap: wrap;
-    gap: 16px;
+    padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
   }
-  .topbar h1 {
-    font-size: 26px;
-    font-weight: 800;
-    margin: 0;
-    letter-spacing: -0.5px;
-  }
-  .topbar .eyebrow {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: #38bdf8;
-    margin: 0 0 2px;
-  }
-  #connectionStatus {
-    font-size: 12px;
-    font-weight: 700;
-    color: #64748b;
-  }
+  .topbar h1 { font-size: 22px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
+  .topbar .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #38bdf8; margin: 0 0 1px; }
+  #connectionStatus { font-size: 12px; font-weight: 700; color: #64748b; }
   #connectionStatus.connected { color: #4ade80; }
 
-  .main {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 28px 32px 80px;
+  .tab-bar {
+    background: rgba(2,6,23,0.9); border-bottom: 1px solid #1e2d45;
+    display: flex; gap: 0; overflow-x: auto; padding: 0 28px;
+    scrollbar-width: none;
   }
+  .tab-bar::-webkit-scrollbar { display: none; }
+  .tab-btn {
+    padding: 12px 18px; border: none; background: none; color: #64748b;
+    font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase;
+    cursor: pointer; white-space: nowrap; border-bottom: 2px solid transparent;
+    transition: all 0.15s; position: relative;
+  }
+  .tab-btn:hover { color: #cbd5e1; }
+  .tab-btn.active { color: #38bdf8; border-bottom-color: #38bdf8; }
+  .tab-btn .tab-count {
+    display: inline-block; background: rgba(56,189,248,0.15); color: #38bdf8;
+    font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-left: 5px; font-weight: 800;
+  }
+  .tab-btn.active .tab-count { background: #38bdf8; color: #04243a; }
 
-  .kpi-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 14px;
-    margin-bottom: 28px;
-  }
+  .main { max-width: 1400px; margin: 0 auto; padding: 24px 28px 80px; }
+
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
   .kpi-card {
-    background: #0d1525;
-    border: 1px solid #1e2d45;
-    border-radius: 12px;
-    padding: 18px;
-    position: relative;
-    overflow: hidden;
+    background: #0d1525; border: 1px solid #1e2d45; border-radius: 12px; padding: 16px;
+    position: relative; overflow: hidden;
   }
-  .kpi-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, #38bdf8, #6366f1);
-  }
+  .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, #38bdf8, #6366f1); }
   .kpi-card.warn::before { background: linear-gradient(90deg, #f59e0b, #ef4444); }
-  .kpi-card span {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #64748b;
-  }
-  .kpi-card strong {
-    display: block;
-    font-size: 30px;
-    font-weight: 800;
-    margin-top: 6px;
-    color: #f8fafc;
-    font-variant-numeric: tabular-nums;
-  }
-  .kpi-card.warn strong { color: #f59e0b; }
+  .kpi-card span { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; }
+  .kpi-card strong { display: block; font-size: 28px; font-weight: 800; margin-top: 4px; color: #f8fafc; font-variant-numeric: tabular-nums; }
 
-  .section-title {
-    font-size: 13px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #38bdf8;
-    margin: 32px 0 14px;
-  }
-
-  .attention-section {
-    margin-bottom: 28px;
-    border: 1px solid rgba(239,68,68,0.3);
-    border-radius: 14px;
-    background: rgba(239,68,68,0.04);
-    overflow: hidden;
-  }
-  .attention-header {
-    padding: 14px 20px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    background: rgba(239,68,68,0.08);
-    border-bottom: 1px solid rgba(239,68,68,0.2);
-  }
-  .attention-header .dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: #ef4444;
-    box-shadow: 0 0 6px #ef4444;
-    animation: attn-pulse 1.6s ease-in-out infinite;
-  }
-  @keyframes attn-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
-  .attention-header strong {
-    font-size: 13px;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #f87171;
-  }
-  .attention-header span {
-    font-size: 12px;
-    color: #94a3b8;
-    margin-left: auto;
-  }
-  .attention-body { padding: 6px 12px; }
-  .attention-row {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 8px 8px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    font-size: 13px;
-  }
-  .attention-row:last-child { border-bottom: none; }
-  .attention-row .attn-name { flex: 1; color: #e8edf5; font-weight: 600; }
-  .attention-row .attn-meta { color: #64748b; font-size: 12px; }
-  .attention-empty {
-    padding: 18px 20px;
-    color: #4ade80;
-    font-size: 13px;
-    text-align: center;
-  }
-
-  .supplier-section { margin-bottom: 30px; }
-  .supplier-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 0;
-    cursor: pointer;
-    user-select: none;
-    border-bottom: 1px solid #1e2d45;
-    margin-bottom: 10px;
-  }
-  .supplier-header .chevron {
-    font-size: 12px;
-    color: #64748b;
-    transition: transform 0.2s ease;
-    width: 12px;
-  }
-  .supplier-section.collapsed .chevron { transform: rotate(-90deg); }
-  .supplier-header h2 {
-    font-size: 15px;
-    font-weight: 800;
-    color: #f8fafc;
-    margin: 0;
-    flex: 1;
-  }
-  .supplier-header .supplier-count {
-    font-size: 12px;
-    color: #64748b;
-    font-weight: 600;
-  }
-  .supplier-products {
-    display: block;
-  }
-  .supplier-section.collapsed .supplier-products { display: none; }
-
-  .controls-row {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-    align-items: center;
-    margin-bottom: 18px;
-  }
+  .controls-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; }
   #searchInput {
-    flex: 1;
-    min-width: 220px;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid #1e2d45;
-    border-radius: 10px;
-    padding: 10px 14px;
-    color: #e8edf5;
-    font-size: 14px;
-    outline: none;
+    flex: 1; min-width: 200px; background: rgba(255,255,255,0.05); border: 1px solid #1e2d45;
+    border-radius: 10px; padding: 9px 14px; color: #e8edf5; font-size: 13px; outline: none;
   }
   #searchInput:focus { border-color: #38bdf8; }
   #searchInput::placeholder { color: #475569; }
 
-  .filter-chip {
-    padding: 8px 16px;
-    border-radius: 20px;
-    border: 1px solid #1e2d45;
-    background: #0d1525;
-    color: #64748b;
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    letter-spacing: 0.03em;
-    transition: all 0.15s;
+  .attention-section {
+    margin-bottom: 22px; border: 1px solid rgba(239,68,68,0.3); border-radius: 12px;
+    background: rgba(239,68,68,0.04); overflow: hidden;
   }
-  .filter-chip:hover { border-color: #38bdf8; color: #38bdf8; }
-  .filter-chip.active { background: #38bdf8; border-color: #38bdf8; color: #04243a; }
+  .attention-header {
+    padding: 12px 18px; display: flex; align-items: center; gap: 10px;
+    background: rgba(239,68,68,0.08); border-bottom: 1px solid rgba(239,68,68,0.2);
+  }
+  .attention-header .dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #ef4444;
+    box-shadow: 0 0 6px #ef4444; animation: attn-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes attn-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .attention-header strong { font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: #f87171; }
+  .attention-header span { font-size: 11px; color: #94a3b8; margin-left: auto; }
+  .attention-body { padding: 4px 10px; }
+  .attention-row { display: flex; align-items: center; gap: 12px; padding: 7px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; }
+  .attention-row:last-child { border-bottom: none; }
+  .attention-row .attn-name { flex: 1; color: #e8edf5; font-weight: 600; }
+  .attention-row .attn-meta { color: #64748b; font-size: 11px; }
+  .attention-empty { padding: 14px 18px; color: #4ade80; font-size: 12px; text-align: center; }
 
-  .product-card {
-    background: #0d1525;
-    border: 1px solid #1e2d45;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    overflow: hidden;
-  }
-  .product-header {
-    padding: 14px 18px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    cursor: pointer;
-    user-select: none;
-  }
+  .tab-page { display: none; }
+  .tab-page.active { display: block; }
+
+  .product-card { background: #0d1525; border: 1px solid #1e2d45; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+  .product-header { padding: 12px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; user-select: none; }
   .product-header:hover { background: rgba(56,189,248,0.04); }
-  .product-chevron {
-    font-size: 12px;
-    color: #64748b;
-    transition: transform 0.2s ease;
-    flex-shrink: 0;
-    width: 14px;
-  }
+  .product-chevron { font-size: 11px; color: #64748b; transition: transform 0.2s ease; flex-shrink: 0; width: 12px; }
   .product-card.open .product-chevron { transform: rotate(90deg); }
-
   .product-info { flex: 1; min-width: 0; }
-  .product-name {
-    font-size: 14px;
-    font-weight: 700;
-    color: #f8fafc;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .product-meta {
-    font-size: 12px;
-    color: #64748b;
-    margin-top: 2px;
-  }
+  .product-name { font-size: 13px; font-weight: 700; color: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .product-meta { font-size: 11px; color: #64748b; margin-top: 1px; }
+  .product-stats { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+  .product-stat .val { font-size: 15px; font-weight: 800; color: #f8fafc; font-variant-numeric: tabular-nums; text-align: right; }
+  .product-stat .lbl { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; text-align: right; }
+  .low-stock-badge { background: rgba(239,68,68,0.15); color: #f87171; font-size: 9px; font-weight: 800; padding: 2px 7px; border-radius: 20px; letter-spacing: 0.04em; text-transform: uppercase; }
 
-  .product-stats {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    flex-shrink: 0;
-  }
-  .product-stat { text-align: right; }
-  .product-stat .val {
-    font-size: 16px;
-    font-weight: 800;
-    color: #f8fafc;
-    font-variant-numeric: tabular-nums;
-  }
-  .product-stat .lbl {
-    font-size: 10px;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-  .low-stock-badge {
-    background: rgba(239,68,68,0.15);
-    color: #f87171;
-    font-size: 10px;
-    font-weight: 800;
-    padding: 3px 9px;
-    border-radius: 20px;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-  }
+  .variations-wrap { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; border-top: 1px solid transparent; overflow-x: auto; }
+  .product-card.open .variations-wrap { max-height: 2000px; border-top: 1px solid #1e2d45; }
 
-  .variations-wrap {
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.3s ease;
-    border-top: 1px solid transparent;
-  }
-  .product-card.open .variations-wrap {
-    max-height: 2000px;
-    border-top: 1px solid #1e2d45;
-  }
+  .variations-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 400px; }
+  .variations-table th { text-align: center; padding: 7px 10px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #475569; background: rgba(255,255,255,0.02); }
+  .variations-table th:first-child { text-align: left; padding-left: 16px; }
+  .variations-table td { padding: 8px 10px; border-top: 1px solid rgba(255,255,255,0.04); color: #cbd5e1; text-align: center; }
+  .variations-table td.color-cell { text-align: left; padding-left: 16px; font-weight: 700; color: #f8fafc; white-space: nowrap; }
+  .variations-table td.color-cell .sku-base { display: block; font-size: 10px; font-weight: 400; color: #64748b; margin-top: 1px; }
 
-  .variations-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-  }
-  .variations-table th {
-    text-align: center;
-    padding: 8px 10px;
-    font-size: 10px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #475569;
-    background: rgba(255,255,255,0.02);
-  }
-  .variations-table th:first-child {
-    text-align: left;
-    padding-left: 18px;
-  }
-  .variations-table td {
-    padding: 9px 10px;
-    border-top: 1px solid rgba(255,255,255,0.04);
-    color: #cbd5e1;
-    text-align: center;
-  }
-  .variations-table td.color-cell {
-    text-align: left;
-    padding-left: 18px;
-    font-weight: 700;
-    color: #f8fafc;
-    white-space: nowrap;
-  }
-  .variations-table td.color-cell .sku-base {
-    display: block;
-    font-size: 11px;
-    font-weight: 400;
-    color: #64748b;
-    margin-top: 1px;
-  }
-  .stock-pill {
-    display: inline-block;
-    min-width: 30px;
-    padding: 3px 8px;
-    border-radius: 8px;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    font-size: 12px;
-  }
+  .stock-pill { display: inline-block; min-width: 28px; padding: 2px 7px; border-radius: 6px; font-weight: 700; font-variant-numeric: tabular-nums; font-size: 11px; }
   .stock-pill.ok { background: rgba(34,197,94,0.12); color: #4ade80; }
   .stock-pill.low { background: rgba(239,68,68,0.15); color: #f87171; }
-  .stock-pill.zero { background: rgba(100,116,139,0.12); color: #64748b; }
   .stock-pill.na { background: transparent; color: #2c3a52; }
 
-  .empty-state {
-    text-align: center;
-    padding: 60px 20px;
-    color: #64748b;
-  }
-
-  .last-synced {
-    font-size: 11px;
-    color: #475569;
-    text-align: right;
-    margin-top: 24px;
-  }
+  .empty-state { text-align: center; padding: 50px 20px; color: #64748b; }
+  .last-synced { font-size: 10px; color: #475569; text-align: right; margin-top: 20px; }
 </style>
 </head>
 <body>
@@ -385,40 +126,21 @@
   <div id="connectionStatus">Connecting...</div>
 </div>
 
+<div class="tab-bar" id="tabBar"></div>
+
 <div class="main">
-
   <div class="kpi-grid">
-    <div class="kpi-card">
-      <span>Total SKUs tracked</span>
-      <strong id="kpiTotalSkus">—</strong>
-    </div>
-    <div class="kpi-card">
-      <span>Total units on hand</span>
-      <strong id="kpiTotalUnits">—</strong>
-    </div>
-    <div class="kpi-card warn">
-      <span>Low stock SKUs</span>
-      <strong id="kpiLowStock">—</strong>
-    </div>
-    <div class="kpi-card">
-      <span>Products tracked</span>
-      <strong id="kpiProducts">—</strong>
-    </div>
+    <div class="kpi-card"><span>Total SKUs in stock</span><strong id="kpiTotal">—</strong></div>
+    <div class="kpi-card"><span>Total units on hand</span><strong id="kpiUnits">—</strong></div>
+    <div class="kpi-card warn"><span>Critically low (≤2)</span><strong id="kpiLow">—</strong></div>
+    <div class="kpi-card"><span>Products tracked</span><strong id="kpiProducts">—</strong></div>
   </div>
-
-  <div id="attentionSection"></div>
-
-  <div class="section-title">Stock levels by supplier</div>
-
   <div class="controls-row">
-    <input id="searchInput" type="search" placeholder="Search product, SKU, color, supplier..." />
-    <button class="filter-chip active" data-filter="all">All</button>
-    <button class="filter-chip" data-filter="low">Low stock</button>
+    <input id="searchInput" type="search" placeholder="Search by product name, SKU, colour..." />
   </div>
-
-  <div id="productList"></div>
+  <div id="attentionSection"></div>
+  <div id="tabPages"></div>
   <div class="last-synced" id="lastSynced"></div>
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -426,332 +148,303 @@
 (function () {
   'use strict';
 
-  const SUPABASE_URL = 'https://euvmacftbcyoassrkpyq.supabase.co';
+  const SUPABASE_URL  = 'https://euvmacftbcyoassrkpyq.supabase.co';
   const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1dm1hY2Z0YmN5b2Fzc3JrcHlxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI4MzYzNDEsImV4cCI6MjA5ODQxMjM0MX0.MyYko-1IKHthPGmVmIbPEn47GYH-NDxhT8jJu20Npdw';
   const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+  const CATEGORIES = [
+    {
+      id: 'tshirts', label: 'T-Shirts',
+      match: n => /t[\-\s]?shirt|tee|cool[\s-]?t|baselayer|base[\s-]?layer|ringspun|creator|valueweight/i.test(n)
+    },
+    {
+      id: 'polos', label: 'Polos',
+      match: n => /polo|piqué|pique/i.test(n)
+    },
+    {
+      id: 'hoodies', label: 'Hoodies & Sweatshirts',
+      match: n => /hoodie|hooded|sweatshirt|sweater|fleece|zoodie|cardigan|pullover|snood|mid[\s-]?layer/i.test(n)
+    },
+    {
+      id: 'trousers', label: 'Trousers & Shorts',
+      match: n => /trouser|short|cargo|combat|legging|jean|chino|jogger|pant/i.test(n)
+    },
+    {
+      id: 'jackets', label: 'Jackets & Gilets',
+      match: n => /jacket|gilet|bodywarmer|body[\s-]?warmer|softshell|soft[\s-]?shell|vest(?!.*hi[\s-]?vis)|coat|blazer|anorak/i.test(n)
+    },
+    {
+      id: 'headwear', label: 'Headwear',
+      match: n => /cap|beanie|hat|bucket|snood|scarf|balaclava|buff/i.test(n)
+    },
+    {
+      id: 'ppe', label: 'PPE & Safety',
+      match: n => /portwest|helmet|glove|goggle|glasses|ear[\s-]?(plug|defender|protect)|hi[\s-]?vis|high[\s-]?vis|mask|respirator|shoe[\s-]?cover|safety/i.test(n)
+    },
+    {
+      id: 'workwear', label: 'Workwear',
+      match: n => /apron|shirt(?!.*polo)|blouse|oxford|corporate|scrub|tunic|tabard/i.test(n)
+    },
+    {
+      id: 'promo', label: 'Promotional',
+      match: n => /johnstone|leyland|ppg|care[\s-]?uk|gori|jdc|jt[\s-]|northside|mercedes|total[\s-]?fitness/i.test(n)
+    },
+    {
+      id: 'bags', label: 'Bags & Accessories',
+      match: n => /bag|backpack|holdall|shopper|tote|lanyard|sock|socks|towel|blanket|umbrella/i.test(n)
+    },
+    {
+      id: 'other', label: 'Other',
+      match: () => true
+    }
+  ];
+
+  const SIZE_ORDER = ['XXXS','XXS','XS','S','SM','S/M','M','M/L','ML','L','L/XL','LXL','XL','2XL','XXL','3XL','XXXL','4XL','5XL','6XL'];
+
   let allRows = [];
-  let currentFilter = 'all';
+  let activeTab = 'tshirts';
   let searchTerm = '';
   const openProducts = new Set();
-  const collapsedSuppliers = new Set();
 
   function $(id) { return document.getElementById(id); }
-  function esc(v) {
-    return String(v == null ? '' : v)
-      .replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
-  }
-  function num(v) { return new Intl.NumberFormat('en-GB').format(Number(v || 0)); }
+  function esc(v) { return String(v==null?'':v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+  function num(v) { return new Intl.NumberFormat('en-GB').format(Number(v||0)); }
 
-  function status(text, connected) {
+  function status(text, ok) {
     const el = $('connectionStatus');
     el.textContent = text;
-    el.classList.toggle('connected', !!connected);
+    el.classList.toggle('connected', !!ok);
   }
 
-  async function load() {
-    status('Loading...', false);
-    try {
-      const { data, error } = await sb
-        .from('inventory_levels')
-        .select('*')
-        .eq('product_deleted', false)
-        .eq('sku_deleted', false)
-        .gt('inv_lvl', 0)
-        .order('product_name', { ascending: true });
-
-      if (error) throw error;
-      allRows = data || [];
-      render();
-      status('Connected', true);
-    } catch (err) {
-      console.error('[ATAM Stock] load error', err);
-      status('Error loading stock', false);
+  function categorise(row) {
+    const name = row.product_name || '';
+    for (const cat of CATEGORIES) {
+      if (cat.match(name)) return cat.id;
     }
+    return 'other';
+  }
+
+  function sizeSortKey(code) {
+    const c = (code||'').toUpperCase().trim();
+    const idx = SIZE_ORDER.indexOf(c);
+    if (idx !== -1) return [0, idx, c];
+    const n = c.match(/^(\d+)/);
+    if (n) return [1, Number(n[1]), c];
+    return [2, 0, c];
+  }
+
+  function sortSizes(codes) {
+    return [...codes].sort((a,b) => {
+      const ka = sizeSortKey(a), kb = sizeSortKey(b);
+      if (ka[0]!==kb[0]) return ka[0]-kb[0];
+      if (ka[1]!==kb[1]) return ka[1]-kb[1];
+      return ka[2].localeCompare(kb[2]);
+    });
   }
 
   function groupByProduct(rows) {
     const groups = {};
     for (const r of rows) {
       const key = r.product_id || r.product_name;
-      if (!groups[key]) {
-        groups[key] = {
-          product_id: r.product_id,
-          product_name: r.product_name,
-          product_code: r.product_code,
-          supplier: r.supplier,
-          variations: [],
-          total_stock: 0,
-          low_count: 0,
-        };
-      }
+      if (!groups[key]) groups[key] = { product_id: r.product_id, product_name: r.product_name, product_code: r.product_code, supplier: r.supplier, variations: [], total_stock: 0, low_count: 0 };
       groups[key].variations.push(r);
-      groups[key].total_stock += Number(r.inv_lvl || 0);
-      if (r.inv_lvl <= r.inv_warn) groups[key].low_count++;
+      groups[key].total_stock += Number(r.inv_lvl||0);
+      if (r.inv_lvl <= 2) groups[key].low_count++;
     }
-    return Object.values(groups).sort((a, b) => a.product_name.localeCompare(b.product_name));
+    return Object.values(groups).sort((a,b) => a.product_name.localeCompare(b.product_name));
   }
 
-  function matchesSearch(group, term) {
-    if (!term) return true;
-    const haystack = [
-      group.product_name, group.product_code, group.supplier,
-      ...group.variations.map(v => `${v.color_name} ${v.size_name} ${v.sku}`)
-    ].join(' ').toLowerCase();
-    return haystack.includes(term);
-  }
-
-  function matchesFilter(group, filter) {
-    if (filter === 'all') return true;
-    if (filter === 'low') return group.variations.some(v => v.inv_lvl > 0 && v.inv_lvl <= v.inv_warn);
-    return true;
-  }
-
-  function stockPillClass(v) {
-    if (v.inv_lvl <= 2) return 'low';
-    return 'ok';
-  }
-
-  const SIZE_ORDER = ['XXS', 'XS', 'S', 'SM', 'S/M', 'M', 'M/L', 'L', 'L/XL', 'XL', '2XL', 'XXL', '3XL', '4XL', '5XL', '6XL'];
-
-  function sizeSortKey(sizeCode) {
-    const code = (sizeCode || '').toUpperCase().trim();
-    const idx = SIZE_ORDER.indexOf(code);
-    if (idx !== -1) return [0, idx, code];
-    const numMatch = code.match(/^(\d+)/);
-    if (numMatch) return [1, Number(numMatch[1]), code];
-    return [2, 0, code];
-  }
-
-  function sortSizeCodes(codes) {
-    return [...codes].sort((a, b) => {
-      const ka = sizeSortKey(a), kb = sizeSortKey(b);
-      if (ka[0] !== kb[0]) return ka[0] - kb[0];
-      if (ka[1] !== kb[1]) return ka[1] - kb[1];
-      return ka[2].localeCompare(kb[2]);
-    });
-  }
-
-  function renderAttentionSection() {
-    const critical = allRows
-      .filter(r => r.inv_lvl <= 2)
-      .sort((a, b) => a.inv_lvl - b.inv_lvl)
-      .slice(0, 12);
-
-    const el = $('attentionSection');
-    if (critical.length === 0) {
-      el.innerHTML = `
-        <div class="attention-section">
-          <div class="attention-header"><span class="dot" style="background:#4ade80;box-shadow:0 0 6px #4ade80;"></span><strong>Needs attention</strong></div>
-          <div class="attention-empty">No SKUs critically low right now.</div>
-        </div>
-      `;
-      return;
-    }
-
-    const totalCritical = allRows.filter(r => r.inv_lvl <= 2).length;
-
-    el.innerHTML = `
-      <div class="attention-section">
-        <div class="attention-header">
-          <span class="dot"></span>
-          <strong>Needs attention — 2 or fewer units</strong>
-          <span>${totalCritical} SKU${totalCritical === 1 ? '' : 's'}</span>
-        </div>
-        <div class="attention-body">
-          ${critical.map(r => `
-            <div class="attention-row">
-              <span class="attn-name">${esc(r.product_name)}</span>
-              <span class="attn-meta">${esc(r.color_name || '')} ${esc(r.size_code || '')} &middot; ${esc(r.sku || '')}</span>
-              <span class="stock-pill low" style="flex-shrink:0">${num(r.inv_lvl)}</span>
-            </div>
-          `).join('')}
-          ${totalCritical > 12 ? `<div class="attention-row"><span class="attn-meta">+ ${totalCritical - 12} more critically low</span></div>` : ''}
-        </div>
-      </div>
-    `;
-  }
-
-  function buildProductCardHtml(g) {
+  function buildProductCard(g) {
     const isOpen = openProducts.has(g.product_id);
-
-    const allSizeCodes = [...new Set(g.variations.map(v => v.size_code).filter(Boolean))];
-    const sizeCols = sortSizeCodes(allSizeCodes);
-    const hasNoSizes = sizeCols.length === 0;
+    const sizeCodes = [...new Set(g.variations.map(v=>v.size_code).filter(Boolean))];
+    const sizeCols = sortSizes(sizeCodes);
+    const noSizes = sizeCols.length === 0;
 
     const colorGroups = {};
     for (const v of g.variations) {
-      const colorKey = v.color_name || '—';
-      if (!colorGroups[colorKey]) colorGroups[colorKey] = {};
-      const sizeKey = v.size_code || '_NOSIZE';
-      colorGroups[colorKey][sizeKey] = v;
+      const ck = v.color_name || '—';
+      if (!colorGroups[ck]) colorGroups[ck] = {};
+      colorGroups[ck][v.size_code || '_'] = v;
     }
-    const colorNames = Object.keys(colorGroups).sort();
+    const colors = Object.keys(colorGroups).sort();
 
-    const headerCols = hasNoSizes
-      ? '<th>On hand</th>'
-      : sizeCols.map(s => `<th>${esc(s)}</th>`).join('');
+    const hdrCols = noSizes ? '<th>On hand</th>' : sizeCols.map(s=>`<th>${esc(s)}</th>`).join('');
 
-    const bodyRows = colorNames.map(colorName => {
-      const sizesForColor = colorGroups[colorName];
-      const baseSkuSample = Object.values(sizesForColor)[0]?.sku || '';
-
-      if (hasNoSizes) {
-        const v = sizesForColor['_NOSIZE'];
-        return `
-          <tr>
-            <td class="color-cell">${esc(colorName)}<span class="sku-base">${esc(baseSkuSample)}</span></td>
-            <td><span class="stock-pill ${stockPillClass(v)}">${num(v.inv_lvl)}</span></td>
-          </tr>
-        `;
+    const bodyRows = colors.map(color => {
+      const szMap = colorGroups[color];
+      if (noSizes) {
+        const v = szMap['_'];
+        if (!v) return '';
+        return `<tr><td class="color-cell">${esc(color)}<span class="sku-base">${esc(v.sku||'')}</span></td><td><span class="stock-pill ${v.inv_lvl<=2?'low':'ok'}">${num(v.inv_lvl)}</span></td></tr>`;
       }
-
-      const cells = sizeCols.map(sizeCode => {
-        const v = sizesForColor[sizeCode];
+      const cells = sizeCols.map(sz => {
+        const v = szMap[sz];
         if (!v) return '<td><span class="stock-pill na">—</span></td>';
-        return `<td><span class="stock-pill ${stockPillClass(v)}" title="${esc(v.sku)}">${num(v.inv_lvl)}</span></td>`;
+        return `<td><span class="stock-pill ${v.inv_lvl<=2?'low':'ok'}" title="${esc(v.sku)}">${num(v.inv_lvl)}</span></td>`;
       }).join('');
-
-      return `
-        <tr>
-          <td class="color-cell">${esc(colorName)}<span class="sku-base">${esc(g.product_code || '')}</span></td>
-          ${cells}
-        </tr>
-      `;
+      return `<tr><td class="color-cell">${esc(color)}<span class="sku-base">${esc(g.product_code||'')}</span></td>${cells}</tr>`;
     }).join('');
 
     return `
-      <div class="product-card ${isOpen ? 'open' : ''}" data-product-id="${esc(g.product_id)}">
+      <div class="product-card ${isOpen?'open':''}" data-product-id="${esc(g.product_id)}">
         <div class="product-header" data-toggle="${esc(g.product_id)}">
           <span class="product-chevron">&#9656;</span>
           <div class="product-info">
             <div class="product-name">${esc(g.product_name)}</div>
-            <div class="product-meta">${esc(g.product_code || '')} &middot; ${colorNames.length} colour${colorNames.length === 1 ? '' : 's'}</div>
+            <div class="product-meta">${esc(g.product_code||'')} &middot; ${colors.length} colour${colors.length===1?'':'s'}</div>
           </div>
           <div class="product-stats">
-            ${g.low_count > 0 ? '<span class="low-stock-badge">' + g.low_count + ' low</span>' : ''}
+            ${g.low_count > 0 ? `<span class="low-stock-badge">${g.low_count} low</span>` : ''}
             <div class="product-stat">
               <div class="val">${num(g.total_stock)}</div>
-              <div class="lbl">Total units</div>
+              <div class="lbl">units</div>
             </div>
           </div>
         </div>
         <div class="variations-wrap">
           <table class="variations-table">
-            <thead>
-              <tr><th>Colour</th>${headerCols}</tr>
-            </thead>
-            <tbody>
-              ${bodyRows}
-            </tbody>
+            <thead><tr><th>Colour</th>${hdrCols}</tr></thead>
+            <tbody>${bodyRows}</tbody>
           </table>
         </div>
-      </div>
-    `;
+      </div>`;
+  }
+
+  function bindToggles(container) {
+    container.querySelectorAll('[data-toggle]').forEach(h => {
+      h.onclick = () => {
+        const id = h.dataset.toggle;
+        const card = h.closest('.product-card');
+        if (openProducts.has(id)) { openProducts.delete(id); card.classList.remove('open'); }
+        else { openProducts.add(id); card.classList.add('open'); }
+      };
+    });
+  }
+
+  function renderAttention() {
+    const critical = allRows.filter(r=>r.inv_lvl<=2).sort((a,b)=>a.inv_lvl-b.inv_lvl).slice(0,10);
+    const totalCrit = allRows.filter(r=>r.inv_lvl<=2).length;
+    const el = $('attentionSection');
+    if (critical.length === 0) {
+      el.innerHTML = `<div class="attention-section"><div class="attention-header"><span class="dot" style="background:#4ade80;box-shadow:0 0 6px #4ade80"></span><strong>All stock healthy</strong></div><div class="attention-empty">No SKUs critically low right now.</div></div>`;
+      return;
+    }
+    el.innerHTML = `
+      <div class="attention-section">
+        <div class="attention-header"><span class="dot"></span><strong>Critically low — 2 or fewer units</strong><span>${totalCrit} SKU${totalCrit===1?'':'s'}</span></div>
+        <div class="attention-body">
+          ${critical.map(r=>`
+            <div class="attention-row">
+              <span class="attn-name">${esc(r.product_name)}</span>
+              <span class="attn-meta">${esc(r.color_name||'')} ${esc(r.size_code||'')} &middot; ${esc(r.sku||'')}</span>
+              <span class="stock-pill low" style="flex-shrink:0">${num(r.inv_lvl)}</span>
+            </div>`).join('')}
+          ${totalCrit>10?`<div class="attention-row"><span class="attn-meta">+ ${totalCrit-10} more critically low across all categories</span></div>`:''}
+        </div>
+      </div>`;
+  }
+
+  function renderTabs() {
+    const categorised = {};
+    for (const cat of CATEGORIES) categorised[cat.id] = [];
+    for (const r of allRows) {
+      const cat = categorise(r);
+      if (!categorised[cat]) categorised[cat] = [];
+      else categorised[cat].push(r);
+    }
+    for (const r of allRows) {
+      const cat = categorise(r);
+      categorised[cat] = categorised[cat] || [];
+    }
+
+    const skusByCat = {};
+    for (const r of allRows) {
+      const cat = categorise(r);
+      if (!skusByCat[cat]) skusByCat[cat] = [];
+      skusByCat[cat].push(r);
+    }
+
+    const tabBar = $('tabBar');
+    const tabPages = $('tabPages');
+
+    tabBar.innerHTML = CATEGORIES.map(cat => {
+      const count = (skusByCat[cat.id]||[]).length;
+      if (count === 0) return '';
+      return `<button class="tab-btn ${cat.id===activeTab?'active':''}" data-tab="${cat.id}">${cat.label}<span class="tab-count">${count}</span></button>`;
+    }).join('');
+
+    tabPages.innerHTML = CATEGORIES.map(cat => {
+      const rows = skusByCat[cat.id] || [];
+      if (rows.length === 0) return '';
+
+      let filtered = rows;
+      if (searchTerm) {
+        filtered = rows.filter(r => [r.product_name,r.product_code,r.color_name,r.size_code,r.sku,r.supplier].join(' ').toLowerCase().includes(searchTerm));
+      }
+
+      const groups = groupByProduct(filtered);
+      const cardsHtml = groups.length
+        ? groups.map(g => buildProductCard(g)).join('')
+        : '<div class="empty-state">No products match your search.</div>';
+
+      return `<div class="tab-page ${cat.id===activeTab?'active':''}" data-tab-page="${cat.id}">${cardsHtml}</div>`;
+    }).join('');
+
+    tabBar.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.onclick = () => {
+        activeTab = btn.dataset.tab;
+        tabBar.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        tabPages.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
+        const page = tabPages.querySelector(`[data-tab-page="${activeTab}"]`);
+        if (page) { page.classList.add('active'); bindToggles(page); }
+      };
+    });
+
+    const activePage = tabPages.querySelector(`[data-tab-page="${activeTab}"]`);
+    if (activePage) bindToggles(activePage);
   }
 
   function render() {
-    renderAttentionSection();
-
     const totalSkus = allRows.length;
-    const totalUnits = allRows.reduce((s, r) => s + Number(r.inv_lvl || 0), 0);
-    const lowStock = allRows.filter(r => r.inv_lvl <= r.inv_warn).length;
-    const groups = groupByProduct(allRows);
+    const totalUnits = allRows.reduce((s,r)=>s+Number(r.inv_lvl||0),0);
+    const lowCount = allRows.filter(r=>r.inv_lvl<=2).length;
+    const products = new Set(allRows.map(r=>r.product_id||r.product_name)).size;
 
-    $('kpiTotalSkus').textContent = num(totalSkus);
-    $('kpiTotalUnits').textContent = num(totalUnits);
-    $('kpiLowStock').textContent = num(lowStock);
-    $('kpiProducts').textContent = num(groups.length);
+    $('kpiTotal').textContent = num(totalSkus);
+    $('kpiUnits').textContent = num(totalUnits);
+    $('kpiLow').textContent = num(lowCount);
+    $('kpiProducts').textContent = num(products);
 
-    const filtered = groups.filter(g => matchesSearch(g, searchTerm) && matchesFilter(g, currentFilter));
+    renderAttention();
+    renderTabs();
 
-    const list = $('productList');
-    if (!filtered.length) {
-      list.innerHTML = '<div class="empty-state">No products match this search or filter.</div>';
-      return;
-    }
+    const latest = allRows.reduce((max,r)=>{const t=r.synced_at?new Date(r.synced_at).getTime():0;return t>max?t:max;},0);
+    if (latest) $('lastSynced').textContent = 'Last synced: '+new Date(latest).toLocaleString('en-GB');
+  }
 
-    const bySupplier = {};
-    for (const g of filtered) {
-      const key = g.supplier || 'Unknown supplier';
-      if (!bySupplier[key]) bySupplier[key] = [];
-      bySupplier[key].push(g);
-    }
-    const supplierNames = Object.keys(bySupplier).sort((a, b) => bySupplier[b].length - bySupplier[a].length);
-
-    list.innerHTML = supplierNames.map(supplierName => {
-      const products = bySupplier[supplierName];
-      const isCollapsed = collapsedSuppliers.has(supplierName);
-      const productCardsHtml = products.map(g => buildProductCardHtml(g)).join('');
-
-      return `
-        <div class="supplier-section ${isCollapsed ? 'collapsed' : ''}" data-supplier="${esc(supplierName)}">
-          <div class="supplier-header" data-supplier-toggle="${esc(supplierName)}">
-            <span class="chevron">&#9662;</span>
-            <h2>${esc(supplierName)}</h2>
-            <span class="supplier-count">${products.length} product${products.length === 1 ? '' : 's'}</span>
-          </div>
-          <div class="supplier-products">${productCardsHtml}</div>
-        </div>
-      `;
-    }).join('');
-
-    list.querySelectorAll('[data-supplier-toggle]').forEach(header => {
-      header.onclick = () => {
-        const key = header.dataset.supplierToggle;
-        const section = header.closest('.supplier-section');
-        if (collapsedSuppliers.has(key)) {
-          collapsedSuppliers.delete(key);
-          section.classList.remove('collapsed');
-        } else {
-          collapsedSuppliers.add(key);
-          section.classList.add('collapsed');
-        }
-      };
-    });
-
-    list.querySelectorAll('[data-toggle]').forEach(header => {
-      header.onclick = () => {
-        const id = header.dataset.toggle;
-        const card = header.closest('.product-card');
-        if (openProducts.has(id)) {
-          openProducts.delete(id);
-          card.classList.remove('open');
-        } else {
-          openProducts.add(id);
-          card.classList.add('open');
-        }
-      };
-    });
-
-    const latestSync = allRows.reduce((max, r) => {
-      const t = r.synced_at ? new Date(r.synced_at).getTime() : 0;
-      return t > max ? t : max;
-    }, 0);
-    if (latestSync) {
-      $('lastSynced').textContent = 'Last synced: ' + new Date(latestSync).toLocaleString('en-GB');
+  async function load() {
+    status('Loading...', false);
+    try {
+      const { data, error } = await sb.from('inventory_levels').select('*').eq('product_deleted',false).eq('sku_deleted',false).gt('inv_lvl',0).order('product_name',{ascending:true});
+      if (error) throw error;
+      allRows = data || [];
+      render();
+      status('Connected', true);
+    } catch(e) {
+      console.error(e);
+      status('Error', false);
     }
   }
 
   $('searchInput').addEventListener('input', e => {
     searchTerm = e.target.value.toLowerCase().trim();
-    render();
-  });
-
-  document.querySelectorAll('.filter-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-      chip.classList.add('active');
-      currentFilter = chip.dataset.filter;
-      render();
-    });
+    renderTabs();
   });
 
   load();
-  setInterval(load, 5 * 60 * 1000);
-
+  setInterval(load, 5*60*1000);
 })();
 </script>
-
 </body>
 </html>
