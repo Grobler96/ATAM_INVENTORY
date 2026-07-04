@@ -81,6 +81,13 @@ body { background: #020617; margin: 0; font-family: -apple-system, BlinkMacSyste
 .attention-row .attn-meta { color: #64748b; font-size: 11px; }
 .attention-empty { padding: 14px 18px; color: #4ade80; font-size: 12px; text-align: center; }
 .attention-note { padding: 8px 18px 12px; color: #94a3b8; font-size: 11px; line-height: 1.5; }
+.attention-body { max-height: 480px; overflow-y: auto; }
+.expand-btn {
+  display: block; width: 100%; background: rgba(255,255,255,0.03); border: none;
+  border-top: 1px solid rgba(255,255,255,0.06); color: #38bdf8; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.03em; text-transform: uppercase; padding: 10px; cursor: pointer; margin-top: 4px;
+}
+.expand-btn:hover { background: rgba(56,189,248,0.08); }
 .tab-page { display: none; }
 .tab-page.active { display: block; }
 .product-card { background: #0d1525; border: 1px solid #1e2d45; border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
@@ -113,6 +120,46 @@ body { background: #020617; margin: 0; font-family: -apple-system, BlinkMacSyste
 .history-progress { font-size: 10px; color: #475569; display: flex; align-items: center; gap: 6px; }
 .history-track { width: 60px; height: 4px; background: #1e2d45; border-radius: 4px; overflow: hidden; }
 .history-fill { height: 100%; background: #38bdf8; }
+
+.chat-bubble {
+  position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; border-radius: 50%;
+  background: #38bdf8; display: flex; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: 0 4px 20px rgba(56,189,248,0.4); z-index: 200; border: none; transition: transform 0.15s;
+}
+.chat-bubble:hover { transform: scale(1.06); }
+.chat-bubble svg { width: 26px; height: 26px; }
+.chat-panel {
+  position: fixed; bottom: 92px; right: 24px; width: 360px; max-height: 520px; z-index: 200;
+  background: #0d1525; border: 1px solid #1e2d45; border-radius: 16px; overflow: hidden;
+  display: none; flex-direction: column; box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+.chat-panel.open { display: flex; }
+.chat-header {
+  padding: 14px 16px; border-bottom: 1px solid #1e2d45; display: flex; align-items: center; gap: 10px;
+  background: rgba(56,189,248,0.06);
+}
+.chat-header .chat-avatar { width: 28px; height: 28px; border-radius: 50%; background: #38bdf8; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: #04243a; flex-shrink: 0; }
+.chat-header strong { font-size: 13px; }
+.chat-header small { display: block; font-size: 10px; color: #4ade80; }
+.chat-close { margin-left: auto; background: none; border: none; color: #64748b; cursor: pointer; font-size: 18px; line-height: 1; padding: 4px; }
+.chat-close:hover { color: #e8edf5; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px; }
+.chat-msg { font-size: 13px; line-height: 1.5; max-width: 88%; padding: 9px 12px; border-radius: 12px; white-space: pre-wrap; }
+.chat-msg.bot { background: #161f33; color: #e8edf5; align-self: flex-start; border-bottom-left-radius: 3px; }
+.chat-msg.user { background: #38bdf8; color: #04243a; align-self: flex-end; border-bottom-right-radius: 3px; font-weight: 600; }
+.chat-msg.typing { color: #64748b; font-style: italic; }
+.chat-input-row { border-top: 1px solid #1e2d45; padding: 10px; display: flex; gap: 8px; }
+.chat-input-row input {
+  flex: 1; background: rgba(255,255,255,0.05); border: 1px solid #1e2d45; border-radius: 10px;
+  padding: 9px 12px; color: #e8edf5; font-size: 13px; outline: none;
+}
+.chat-input-row input:focus { border-color: #38bdf8; }
+.chat-input-row button {
+  background: #38bdf8; border: none; border-radius: 10px; width: 38px; display: flex;
+  align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
+}
+.chat-input-row button:disabled { opacity: 0.5; cursor: default; }
+.chat-input-row button svg { width: 16px; height: 16px; }
 </style>
 </head>
 <body>
@@ -152,6 +199,28 @@ body { background: #020617; margin: 0; font-family: -apple-system, BlinkMacSyste
   <div class="last-synced">
     <span class="history-progress" id="historyProgress"></span>
     <span id="lastSynced"></span>
+  </div>
+</div>
+
+<button class="chat-bubble" id="chatBubble" aria-label="Open DanBot assistant">
+  <svg viewBox="0 0 24 24" fill="none" stroke="#04243a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+</button>
+
+<div class="chat-panel" id="chatPanel">
+  <div class="chat-header">
+    <div class="chat-avatar">D</div>
+    <div>
+      <strong>DanBot</strong>
+      <small>&#9679; Live stock data</small>
+    </div>
+    <button class="chat-close" id="chatClose" aria-label="Close chat">&times;</button>
+  </div>
+  <div class="chat-messages" id="chatMessages"></div>
+  <div class="chat-input-row">
+    <input type="text" id="chatInput" placeholder="Ask about stock, value, or orders...">
+    <button id="chatSend" aria-label="Send">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#04243a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"></path><path d="M22 2 15 22 11 13 2 9z"></path></svg>
+    </button>
   </div>
 </div>
 
@@ -360,26 +429,29 @@ function bindToggles(container) {
 }
 
 function renderAttention() {
-  const critical = allRows.filter(r=>r.inv_lvl<=2).sort((a,b)=>a.inv_lvl-b.inv_lvl).slice(0,10);
-  const totalCrit = allRows.filter(r=>r.inv_lvl<=2).length;
+  const allCritical = allRows.filter(r=>r.inv_lvl<=2).sort((a,b)=>a.inv_lvl-b.inv_lvl);
+  const totalCrit = allCritical.length;
   const el = $('attentionSection');
-  if (critical.length === 0) {
+  if (allCritical.length === 0) {
     el.innerHTML = `<div class="attention-section"><div class="attention-header"><span class="dot" style="background:#4ade80;box-shadow:0 0 6px #4ade80"></span><strong>All stock healthy</strong></div><div class="attention-empty">No SKUs critically low right now.</div></div>`;
     return;
   }
+  const expanded = el.dataset.expanded === 'true';
+  const visible = expanded ? allCritical : allCritical.slice(0,10);
   el.innerHTML = `
     <div class="attention-section">
       <div class="attention-header"><span class="dot"></span><strong>Critically low &mdash; 2 or fewer units</strong><span>${totalCrit} SKU${totalCrit===1?'':'s'}</span></div>
       <div class="attention-body">
-        ${critical.map(r=>`
+        ${visible.map(r=>`
           <div class="attention-row">
             <span class="attn-name">${esc(r.product_name)}</span>
             <span class="attn-meta">${esc(r.color_name||'')} ${esc(r.size_code||'')} &middot; ${esc(r.sku||'')}</span>
             <span class="stock-pill low" style="flex-shrink:0">${num(r.inv_lvl)}</span>
           </div>`).join('')}
-        ${totalCrit>10?`<div class="attention-row"><span class="attn-meta">+ ${totalCrit-10} more critically low across all categories</span></div>`:''}
+        ${totalCrit>10?`<button class="expand-btn" data-expand-target="attentionSection">${expanded?'Show less':'Show all '+totalCrit+' critically low SKUs'}</button>`:''}
       </div>
     </div>`;
+  bindExpandButtons(el);
 }
 
 function renderWorkingStock() {
@@ -389,24 +461,39 @@ function renderWorkingStock() {
     return;
   }
   const sorted = workingStockOnly.slice().sort((a,b) => (b.working_stock_value||0) - (a.working_stock_value||0));
-  const top = sorted.slice(0, 10);
   const totalHidden = sorted.length;
   const totalHiddenValue = sorted.reduce((s,r) => s + (Number(r.working_stock_value)||0), 0);
+  const expanded = el.dataset.expanded === 'true';
+  const visible = expanded ? sorted : sorted.slice(0,10);
 
   el.innerHTML = `
     <div class="attention-section info">
       <div class="attention-header"><span class="dot"></span><strong>Working stock not shown above</strong><span>${totalHidden} SKU${totalHidden===1?'':'s'} &middot; ${money(totalHiddenValue)}</span></div>
       <div class="attention-body">
-        ${top.map(r=>`
+        ${visible.map(r=>`
           <div class="attention-row">
             <span class="attn-name">${esc(r.product_name||r.sku)}</span>
             <span class="attn-meta">${esc(r.sku||'')}</span>
             <span class="stock-pill ok" style="flex-shrink:0;background:rgba(245,158,11,0.15);color:#fbbf24">${num(r.working_stock_qty)}</span>
           </div>`).join('')}
-        ${totalHidden>10?`<div class="attention-row"><span class="attn-meta">+ ${totalHidden-10} more</span></div>`:''}
+        ${totalHidden>10?`<button class="expand-btn" data-expand-target="workingStockSection">${expanded?'Show less':'Show all '+totalHidden+' working stock SKUs'}</button>`:''}
       </div>
       <div class="attention-note">These SKUs are already pulled to fulfil a specific order that hasn't shipped yet &mdash; real physical stock, but it shows zero above because the normal report only counts unallocated inventory.</div>
     </div>`;
+  bindExpandButtons(el);
+}
+
+function bindExpandButtons(container) {
+  const btn = container.querySelector('[data-expand-target]');
+  if (!btn) return;
+  btn.onclick = () => {
+    const targetId = btn.dataset.expandTarget;
+    const targetEl = $(targetId);
+    const currentlyExpanded = targetEl.dataset.expanded === 'true';
+    targetEl.dataset.expanded = currentlyExpanded ? 'false' : 'true';
+    if (targetId === 'attentionSection') renderAttention();
+    else renderWorkingStock();
+  };
 }
 
 function renderTabs() {
@@ -584,6 +671,78 @@ $('searchInput').addEventListener('input', e => {
 
 load();
 setInterval(load, 5*60*1000);
+
+// ---- DanBot chat widget ----
+const DANBOT_URL = 'https://danbotv2.grobleroliver.workers.dev/';
+const chatSessionId = 'inventory-' + Math.random().toString(36).slice(2);
+let chatHistory = [];
+
+function addChatMessage(text, role) {
+  const wrap = $('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  div.textContent = text;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+  return div;
+}
+
+function currentDashboardContext() {
+  return {
+    total_stock_value: valueTotals.total.toFixed(2),
+    onhand_value: valueTotals.onHand.toFixed(2),
+    working_stock_value: valueTotals.working.toFixed(2),
+    total_skus: allRows.length,
+    critically_low_count: allRows.filter(r=>r.inv_lvl<=2).length,
+    working_stock_only_count: workingStockOnly.length
+  };
+}
+
+async function sendChatMessage(text) {
+  addChatMessage(text, 'user');
+  chatHistory.push(text);
+  $('chatInput').value = '';
+  $('chatSend').disabled = true;
+  const typingEl = addChatMessage('Thinking...', 'bot typing');
+
+  try {
+    const res = await fetch(DANBOT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, sessionId: chatSessionId, context: currentDashboardContext() })
+    });
+    const data = await res.json();
+    typingEl.remove();
+    addChatMessage(data.reply || 'Sorry, no response.', 'bot');
+  } catch (e) {
+    typingEl.remove();
+    addChatMessage('Could not reach DanBot right now. Try again in a moment.', 'bot');
+  } finally {
+    $('chatSend').disabled = false;
+    $('chatInput').focus();
+  }
+}
+
+$('chatBubble').addEventListener('click', () => {
+  const panel = $('chatPanel');
+  panel.classList.add('open');
+  if (!panel.dataset.greeted) {
+    panel.dataset.greeted = 'true';
+    addChatMessage("Hi! I'm DanBot. Ask me about stock levels, stock value, working stock, or upcoming orders.", 'bot');
+  }
+  $('chatInput').focus();
+});
+$('chatClose').addEventListener('click', () => $('chatPanel').classList.remove('open'));
+$('chatSend').addEventListener('click', () => {
+  const val = $('chatInput').value.trim();
+  if (val) sendChatMessage(val);
+});
+$('chatInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') {
+    const val = $('chatInput').value.trim();
+    if (val) sendChatMessage(val);
+  }
+});
 })();
 </script>
 </body>
