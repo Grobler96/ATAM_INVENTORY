@@ -122,7 +122,10 @@ body { background: #020617; margin: 0; font-family: -apple-system, BlinkMacSyste
     <p class="eyebrow">ATAM Workwear</p>
     <h1>ATAM Stock</h1>
   </div>
-  <div id="connectionStatus">Connecting...</div>
+  <div style="display:flex;align-items:center;gap:18px">
+    <a href="projections.html" style="font-size:12px;font-weight:700;color:#38bdf8;text-decoration:none;display:flex;align-items:center;gap:6px;padding:7px 14px;border:1px solid rgba(56,189,248,0.3);border-radius:8px;background:rgba(56,189,248,0.08)">Projections &rarr;</a>
+    <div id="connectionStatus">Connecting...</div>
+  </div>
 </div>
 
 <div class="tab-bar" id="tabBar"></div>
@@ -135,6 +138,7 @@ body { background: #020617; margin: 0; font-family: -apple-system, BlinkMacSyste
     <div class="kpi-card"><span>Products tracked</span><strong id="kpiProducts">&mdash;</strong></div>
     <div class="kpi-card money"><span>Total stock value</span><strong id="kpiTotalValue">&mdash;</strong><small id="kpiTotalValueSub">&nbsp;</small></div>
     <div class="kpi-card money"><span>Working stock value</span><strong id="kpiWorkingValue">&mdash;</strong><small id="kpiWorkingValueSub">&nbsp;</small></div>
+    <div class="kpi-card money" style="border-color:rgba(167,139,250,0.3)"><span>Projected value (next month)</span><strong id="kpiProjectedValue">&mdash;</strong><small id="kpiProjectedValueSub">&nbsp;</small></div>
   </div>
 
   <div class="controls-row">
@@ -221,6 +225,7 @@ let valueBySku = new Map();
 let workingStockOnly = [];
 let valueTotals = { onHand: 0, working: 0, total: 0 };
 let historyDaysCollected = 0;
+let projectedNextMonth = null;
 
 let activeTab = 'tshirts';
 let searchTerm = '';
@@ -473,6 +478,16 @@ function render() {
   $('kpiWorkingValue').innerHTML = money(valueTotals.working);
   $('kpiWorkingValueSub').textContent = 'Tied up in unshipped orders';
 
+  if (projectedNextMonth) {
+    $('kpiProjectedValue').innerHTML = money(projectedNextMonth.value);
+    const pct = valueTotals.total ? (projectedNextMonth.delta / valueTotals.total * 100) : 0;
+    const sub = $('kpiProjectedValueSub');
+    sub.textContent = (pct >= 0 ? '+' : '') + pct.toFixed(1) + '% seasonal, from ' + projectedNextMonth.monthsOfHistory + 'mo history';
+  } else {
+    $('kpiProjectedValue').textContent = 'Gathering data';
+    $('kpiProjectedValueSub').textContent = 'Needs 2+ months of PO history';
+  }
+
   renderAttention();
   renderWorkingStock();
   renderTabs();
@@ -502,13 +517,47 @@ async function loadValueData() {
     const { data: histData } = await sbValue.from('inventory_value_history').select('snapshot_date');
     const uniqueDates = new Set((histData||[]).map(h => h.snapshot_date));
     historyDaysCollected = uniqueDates.size;
+
+    const { data: spendData } = await sbValue.from('po_spend_monthly').select('month_key,total_spend');
+    projectedNextMonth = computeNextMonthProjection(spendData || [], valueTotals.total);
   } catch(e) {
     console.error('Value data load failed:', e);
     valueBySku = new Map();
     workingStockOnly = [];
     valueTotals = { onHand: 0, working: 0, total: 0 };
     historyDaysCollected = 0;
+    projectedNextMonth = null;
   }
+}
+
+function computeNextMonthProjection(spendRows, currentValue) {
+  const rows = spendRows.filter(r => Number(r.total_spend) > 0);
+  if (rows.length < 2) return null;
+
+  const byMonthNum = {};
+  for (const r of rows) {
+    const m = Number(r.month_key.slice(5,7));
+    if (!byMonthNum[m]) byMonthNum[m] = [];
+    byMonthNum[m].push(Number(r.total_spend));
+  }
+  const overallAvg = rows.reduce((s,r) => s + Number(r.total_spend), 0) / rows.length;
+  const seasonalIndex = m => {
+    if (byMonthNum[m] && byMonthNum[m].length) {
+      const avg = byMonthNum[m].reduce((a,b)=>a+b,0) / byMonthNum[m].length;
+      return avg / overallAvg;
+    }
+    return 1;
+  };
+
+  const now = new Date();
+  const currentMonthNum = now.getMonth() + 1;
+  const nextMonthNum = (currentMonthNum % 12) + 1;
+
+  const baseIdx = seasonalIndex(currentMonthNum);
+  const nextIdx = seasonalIndex(nextMonthNum);
+  const projectedValue = currentValue * (nextIdx / baseIdx);
+
+  return { value: projectedValue, delta: projectedValue - currentValue, monthsOfHistory: rows.length };
 }
 
 async function load() {
