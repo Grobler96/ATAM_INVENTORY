@@ -36,7 +36,7 @@ body { background: #020617; margin: 0; font-family: -apple-system, BlinkMacSyste
   font-size: 10px; padding: 1px 6px; border-radius: 10px; margin-left: 5px; font-weight: 800;
 }
 .tab-btn.active .tab-count { background: #38bdf8; color: #04243a; }
-.main { max-width: 1400px; margin: 0 auto; padding: 24px 28px 80px; }
+.main { max-width: 1400px; margin: 0 auto; padding: 24px 28px 80px; transition: margin-right 0.22s ease; }
 .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
 .kpi-card {
   background: #0d1525; border: 1px solid #1e2d45; border-radius: 12px; padding: 16px;
@@ -127,13 +127,17 @@ body { background: #020617; margin: 0; font-family: -apple-system, BlinkMacSyste
   box-shadow: 0 4px 20px rgba(56,189,248,0.4); z-index: 200; border: none; transition: transform 0.15s;
 }
 .chat-bubble:hover { transform: scale(1.06); }
+body.chat-open .chat-bubble { display: none; }
 .chat-bubble svg { width: 26px; height: 26px; }
 .chat-panel {
-  position: fixed; bottom: 92px; right: 24px; width: 360px; max-height: 520px; z-index: 200;
-  background: #0d1525; border: 1px solid #1e2d45; border-radius: 16px; overflow: hidden;
-  display: none; flex-direction: column; box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+  position: fixed; top: 0; right: 0; bottom: 0; width: 420px; max-width: 92vw; z-index: 200;
+  background: #0d1525; border-left: 1px solid #1e2d45; overflow: hidden;
+  display: none; flex-direction: column; box-shadow: -12px 0 40px rgba(0,0,0,0.5);
+  transform: translateX(100%); transition: transform 0.22s ease;
 }
-.chat-panel.open { display: flex; }
+.chat-panel.open { display: flex; transform: translateX(0); }
+body.chat-open .main { margin-right: 420px; transition: margin-right 0.22s ease; }
+@media (max-width: 860px) { body.chat-open .main { margin-right: 0; } }
 .chat-header {
   padding: 14px 16px; border-bottom: 1px solid #1e2d45; display: flex; align-items: center; gap: 10px;
   background: rgba(56,189,248,0.06);
@@ -734,13 +738,17 @@ async function sendChatMessage(text) {
 $('chatBubble').addEventListener('click', () => {
   const panel = $('chatPanel');
   panel.classList.add('open');
+  document.body.classList.add('chat-open');
   if (!panel.dataset.greeted) {
     panel.dataset.greeted = 'true';
     addChatMessage("Hi! I'm DanBot. Ask me about stock levels, stock value, working stock, or upcoming orders.", 'bot');
   }
   $('chatInput').focus();
 });
-$('chatClose').addEventListener('click', () => $('chatPanel').classList.remove('open'));
+$('chatClose').addEventListener('click', () => {
+  $('chatPanel').classList.remove('open');
+  document.body.classList.remove('chat-open');
+});
 $('chatSend').addEventListener('click', () => {
   const val = $('chatInput').value.trim();
   if (val) sendChatMessage(val);
