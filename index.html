@@ -344,13 +344,14 @@ function groupByProduct(rows) {
   const groups = {};
   for (const r of rows) {
     const key = r.product_id || r.product_name;
-    if (!groups[key]) groups[key] = { product_id: r.product_id, product_name: r.product_name, product_code: r.product_code, supplier: r.supplier, variations: [], total_stock: 0, low_count: 0, total_value: 0 };
+    if (!groups[key]) groups[key] = { product_id: r.product_id, product_name: r.product_name, product_code: r.product_code, supplier: r.supplier, variations: [], total_stock: 0, low_count: 0, total_value: 0, costed_units: 0 };
     groups[key].variations.push(r);
     groups[key].total_stock += Number(r.inv_lvl||0);
     if (r.inv_lvl <= 2) groups[key].low_count++;
     const v = valueBySku.get(r.sku);
     if (v && v.stock_value !== null && v.stock_value !== undefined) {
       groups[key].total_value += Number(v.stock_value);
+      groups[key].costed_units += Number(r.inv_lvl||0);
     }
   }
   return Object.values(groups).sort((a,b) => a.product_name.localeCompare(b.product_name));
@@ -387,9 +388,16 @@ function buildProductCard(g) {
     return `<tr><td class="color-cell">${esc(color)}<span class="sku-base">${esc(g.product_code||'')}</span></td>${cells}</tr>`;
   }).join('');
 
-  const valueStat = g.total_value > 0
-    ? `<div class="product-stat"><div class="val money">${money(g.total_value)}</div><div class="lbl">value</div></div>`
-    : '';
+  let valueStat = '';
+  if (g.total_stock > 0) {
+    if (g.costed_units === 0) {
+      valueStat = `<div class="product-stat"><div class="val" style="color:#475569;font-size:12px">no cost data</div><div class="lbl">value</div></div>`;
+    } else if (g.costed_units < g.total_stock) {
+      valueStat = `<div class="product-stat" title="Cost data covers ${g.costed_units} of ${g.total_stock} units"><div class="val money">~${money(g.total_value)}</div><div class="lbl">value (partial)</div></div>`;
+    } else {
+      valueStat = `<div class="product-stat"><div class="val money">${money(g.total_value)}</div><div class="lbl">value</div></div>`;
+    }
+  }
 
   return `
     <div class="product-card ${isOpen?'open':''}" data-product-id="${esc(g.product_id)}">
