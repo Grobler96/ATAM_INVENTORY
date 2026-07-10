@@ -60,19 +60,23 @@ body { background: #020617; margin: 0; font-family: -apple-system, BlinkMacSyste
   background: rgba(239,68,68,0.04); overflow: hidden;
 }
 .attention-section.info { border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.05); }
+.attention-section.neutral { border-color: rgba(148,163,184,0.35); background: rgba(148,163,184,0.05); }
 .attention-header {
   padding: 12px 18px; display: flex; align-items: center; gap: 10px;
   background: rgba(239,68,68,0.08); border-bottom: 1px solid rgba(239,68,68,0.2);
 }
 .attention-section.info .attention-header { background: rgba(245,158,11,0.1); border-bottom-color: rgba(245,158,11,0.25); }
+.attention-section.neutral .attention-header { background: rgba(148,163,184,0.1); border-bottom-color: rgba(148,163,184,0.25); }
 .attention-header .dot {
   width: 7px; height: 7px; border-radius: 50%; background: #ef4444;
   box-shadow: 0 0 6px #ef4444; animation: attn-pulse 1.6s ease-in-out infinite;
 }
 .attention-section.info .attention-header .dot { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+.attention-section.neutral .attention-header .dot { background: #94a3b8; box-shadow: 0 0 6px #94a3b8; }
 @keyframes attn-pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
 .attention-header strong { font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: #f87171; }
 .attention-section.info .attention-header strong { color: #fbbf24; }
+.attention-section.neutral .attention-header strong { color: #cbd5e1; }
 .attention-header span { font-size: 11px; color: #94a3b8; margin-left: auto; }
 .attention-body { padding: 4px 10px; }
 .attention-row { display: flex; align-items: center; gap: 12px; padding: 7px 8px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; }
@@ -198,6 +202,7 @@ body.chat-open .main { margin-right: 420px; transition: margin-right 0.22s ease;
 
   <div id="attentionSection"></div>
   <div id="workingStockSection"></div>
+  <div id="missingCostSection"></div>
   <div id="tabPages"></div>
 
   <div class="last-synced">
@@ -296,6 +301,7 @@ const SIZE_ORDER = ['XXXS','XXS','XS','S','SM','S/M','M','M/L','ML','L','L/XL','
 let allRows = [];
 let valueBySku = new Map();
 let workingStockOnly = [];
+let missingCostOnly = [];
 let valueTotals = { onHand: 0, working: 0, total: 0 };
 let historyDaysCollected = 0;
 let projectedNextMonth = null;
@@ -495,6 +501,37 @@ function renderWorkingStock() {
   bindExpandButtons(el);
 }
 
+function renderMissingCost() {
+  const el = $('missingCostSection');
+  if (!el) return;
+  if (missingCostOnly.length === 0) {
+    el.innerHTML = '';
+    return;
+  }
+  // Highest units-on-hand first, since those distort total value the most.
+  const sorted = missingCostOnly.slice().sort((a,b) => (Number(b.qty_on_hand)||0) - (Number(a.qty_on_hand)||0));
+  const totalMissing = sorted.length;
+  const totalUnaccounted = sorted.reduce((s,r) => s + (Number(r.qty_on_hand)||0) + (Number(r.working_stock_qty)||0), 0);
+  const expanded = el.dataset.expanded === 'true';
+  const visible = expanded ? sorted : sorted.slice(0,10);
+
+  el.innerHTML = `
+    <div class="attention-section neutral">
+      <div class="attention-header"><span class="dot"></span><strong>Missing cost &mdash; not counted in stock value</strong><span>${totalMissing} SKU${totalMissing===1?'':'s'} &middot; ${num(totalUnaccounted)} units</span></div>
+      <div class="attention-body">
+        ${visible.map(r=>`
+          <div class="attention-row">
+            <span class="attn-name">${esc(r.product_name||r.sku)}</span>
+            <span class="attn-meta">${esc(r.sku||'')}</span>
+            <span class="stock-pill na" style="flex-shrink:0;background:rgba(148,163,184,0.15);color:#cbd5e1">${num((Number(r.qty_on_hand)||0)+(Number(r.working_stock_qty)||0))}</span>
+          </div>`).join('')}
+        ${totalMissing>10?`<button class="expand-btn" data-expand-target="missingCostSection">${expanded?'Show less':'Show all '+totalMissing+' SKUs with no cost'}</button>`:''}
+      </div>
+      <div class="attention-note">These SKUs don't have a cost in any supplier price list yet, so their value is excluded from the totals above rather than being shown as zero. If any of these are stock-holding items that should never have a cost, add them to the ignore list so they stop appearing here.</div>
+    </div>`;
+  bindExpandButtons(el);
+}
+
 function bindExpandButtons(container) {
   const btn = container.querySelector('[data-expand-target]');
   if (!btn) return;
@@ -504,7 +541,8 @@ function bindExpandButtons(container) {
     const currentlyExpanded = targetEl.dataset.expanded === 'true';
     targetEl.dataset.expanded = currentlyExpanded ? 'false' : 'true';
     if (targetId === 'attentionSection') renderAttention();
-    else renderWorkingStock();
+    else if (targetId === 'workingStockSection') renderWorkingStock();
+    else if (targetId === 'missingCostSection') renderMissingCost();
   };
 }
 
@@ -589,6 +627,7 @@ function render() {
 
   renderAttention();
   renderWorkingStock();
+  renderMissingCost();
   renderTabs();
   renderHistoryProgress();
 
@@ -600,12 +639,13 @@ async function loadValueData() {
   try {
     const { data, error } = await sbValue
       .from('inventory_value')
-      .select('sku,product_name,qty_on_hand,working_stock_qty,unit_cost,stock_value,working_stock_value,total_value');
+      .select('sku,product_name,qty_on_hand,working_stock_qty,unit_cost,stock_value,working_stock_value,total_value,cost_source,missing_cost,cost_ignored');
     if (error) throw error;
 
     const rows = data || [];
     valueBySku = new Map(rows.map(r => [r.sku, r]));
     workingStockOnly = rows.filter(r => (r.working_stock_qty||0) > 0 && (r.qty_on_hand||0) === 0);
+    missingCostOnly = rows.filter(r => r.missing_cost === true && ((r.qty_on_hand||0) > 0 || (r.working_stock_qty||0) > 0));
 
     valueTotals = {
       onHand: rows.reduce((s,r) => s + (Number(r.stock_value)||0), 0),
@@ -623,6 +663,7 @@ async function loadValueData() {
     console.error('Value data load failed:', e);
     valueBySku = new Map();
     workingStockOnly = [];
+    missingCostOnly = [];
     valueTotals = { onHand: 0, working: 0, total: 0 };
     historyDaysCollected = 0;
     projectedNextMonth = null;
@@ -706,7 +747,8 @@ function currentDashboardContext() {
     working_stock_value: valueTotals.working.toFixed(2),
     total_skus: allRows.length,
     critically_low_count: allRows.filter(r=>r.inv_lvl<=2).length,
-    working_stock_only_count: workingStockOnly.length
+    working_stock_only_count: workingStockOnly.length,
+    missing_cost_count: missingCostOnly.length
   };
 }
 
