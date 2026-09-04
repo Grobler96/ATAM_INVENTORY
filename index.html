@@ -486,17 +486,17 @@ function renderWorkingStock() {
 
   el.innerHTML = `
     <div class="attention-section info">
-      <div class="attention-header"><span class="dot"></span><strong>Working stock not shown above</strong><span>${totalHidden} SKU${totalHidden===1?'':'s'} &middot; ${money(totalHiddenValue)}</span></div>
+      <div class="attention-header"><span class="dot"></span><strong>Working stock — full breakdown</strong><span>${totalHidden} SKU${totalHidden===1?'':'s'} &middot; ${money(totalHiddenValue)}</span></div>
       <div class="attention-body">
         ${visible.map(r=>`
           <div class="attention-row">
             <span class="attn-name">${esc(r.product_name||r.sku)}</span>
-            <span class="attn-meta">${esc(r.sku||'')}</span>
-            <span class="stock-pill ok" style="flex-shrink:0;background:rgba(245,158,11,0.15);color:#fbbf24">${num(r.working_stock_qty)}</span>
+            <span class="attn-meta">${esc(r.sku||'')} &middot; ${(r.qty_on_hand||0)>0? num(r.qty_on_hand)+' on hand + ':''}${num(r.working_stock_qty)} allocated</span>
+            <span class="stock-pill ok" style="flex-shrink:0;background:rgba(245,158,11,0.15);color:#fbbf24">${money(r.working_stock_value)}</span>
           </div>`).join('')}
         ${totalHidden>10?`<button class="expand-btn" data-expand-target="workingStockSection">${expanded?'Show less':'Show all '+totalHidden+' working stock SKUs'}</button>`:''}
       </div>
-      <div class="attention-note">These SKUs are already pulled to fulfil a specific order that hasn't shipped yet &mdash; real physical stock, but it shows zero above because the normal report only counts unallocated inventory.</div>
+      <div class="attention-note">This is every SKU with stock pulled to fulfil an order that hasn't shipped yet. This total always matches the "Working stock value" figure above &mdash; nothing here is double-counted or hidden elsewhere on the page.</div>
     </div>`;
   bindExpandButtons(el);
 }
@@ -644,7 +644,7 @@ async function loadValueData() {
 
     const rows = data || [];
     valueBySku = new Map(rows.map(r => [r.sku, r]));
-    workingStockOnly = rows.filter(r => (r.working_stock_qty||0) > 0 && (r.qty_on_hand||0) === 0);
+    workingStockOnly = rows.filter(r => (r.working_stock_qty||0) > 0);
     missingCostOnly = rows.filter(r => r.missing_cost === true && ((r.qty_on_hand||0) > 0 || (r.working_stock_qty||0) > 0));
 
     valueTotals = {
