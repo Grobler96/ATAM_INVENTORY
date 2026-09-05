@@ -168,6 +168,43 @@ body.chat-open .main { margin-right: 420px; transition: margin-right 0.22s ease;
 }
 .chat-input-row button:disabled { opacity: 0.5; cursor: default; }
 .chat-input-row button svg { width: 16px; height: 16px; }
+.cal-summary-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: #1e2d45; border: 1px solid #1e2d45; border-radius: 12px; overflow: hidden; margin-bottom: 18px; }
+.cal-summary-cell { background: #0d1525; padding: 14px 16px; }
+.cal-summary-cell span { display:block; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #64748b; margin-bottom: 6px; }
+.cal-summary-cell strong { font-size: 18px; font-weight: 800; color: #f8fafc; font-variant-numeric: tabular-nums; }
+.cal-summary-cell strong.accent { color: #4ade80; }
+.cal-toolbar { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 14px; }
+.cal-toolbar button { background: #0d1525; border: 1px solid #1e2d45; color: #e8edf5; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 15px; display:flex; align-items:center; justify-content:center; transition: border-color .15s, color .15s; }
+.cal-toolbar button:hover { border-color: #38bdf8; color: #38bdf8; }
+.cal-toolbar .cal-month-label { font-size: 15px; font-weight: 800; min-width: 160px; text-align: center; color: #f8fafc; }
+.cal-wrap { background: #0d1525; border: 1px solid #1e2d45; border-radius: 14px; padding: 18px; }
+.cal-weekdays { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 6px; }
+.cal-weekdays div { text-align: center; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #64748b; padding-bottom: 4px; }
+.cal-grid { display: grid; grid-template-columns: repeat(7,1fr); grid-auto-rows: 78px; gap: 6px; }
+.cal-day { position: relative; border-radius: 8px; background: #111a2c; border: 1px solid #1e2d45; padding: 8px; display:flex; flex-direction:column; justify-content:space-between; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; }
+.cal-day.empty { background: transparent; border: none; }
+.cal-day.has-data { cursor: pointer; }
+.cal-day.has-data:hover { transform: translateY(-3px) scale(1.03); border-color: #38bdf8; box-shadow: 0 0 0 1px #38bdf8, 0 10px 22px rgba(56,189,248,0.35); z-index: 2; }
+.cal-day.today { border-color: #6366f1; }
+.cal-day .cal-daynum { font-size: 11px; font-weight: 700; color: #94a3b8; }
+.cal-day .cal-dayval { font-size: 12px; font-weight: 800; color: #4ade80; font-variant-numeric: tabular-nums; }
+.cal-day .cal-nodot { width: 4px; height: 4px; border-radius: 50%; background: #1e2d45; align-self: flex-end; }
+.cal-modal-overlay { position: fixed; inset: 0; background: rgba(2,6,23,0.72); display: none; align-items: center; justify-content: center; z-index: 200; padding: 20px; }
+.cal-modal-overlay.open { display: flex; }
+.cal-modal { background: #0d1525; border: 1px solid #1e2d45; border-radius: 14px; width: 100%; max-width: 480px; max-height: 82vh; overflow-y: auto; padding: 24px; box-shadow: 0 30px 80px rgba(0,0,0,0.55); }
+.cal-modal-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #1e2d45; padding-bottom: 12px; margin-bottom: 16px; }
+.cal-modal-head h3 { margin: 0 0 3px; font-size: 18px; color: #f8fafc; }
+.cal-modal-head .sub { font-size: 11px; color: #64748b; }
+.cal-modal-close { background: none; border: none; color: #94a3b8; font-size: 20px; cursor: pointer; line-height: 1; padding: 4px; }
+.cal-modal-total { font-size: 32px; font-weight: 800; color: #4ade80; margin: 0 0 2px; font-variant-numeric: tabular-nums; }
+.cal-modal-total-label { font-size: 11px; color: #64748b; margin-bottom: 16px; }
+.cal-breakdown { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: #1e2d45; border: 1px solid #1e2d45; border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+.cal-breakdown div { background: #111a2c; padding: 10px 12px; }
+.cal-breakdown .k { font-size: 9px; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+.cal-breakdown .v { font-size: 14px; font-weight: 700; color: #e8edf5; }
+.cal-top-skus { font-size: 11px; color: #94a3b8; line-height: 1.8; border-top: 1px solid #1e2d45; padding-top: 12px; }
+.cal-top-skus strong { color: #cbd5e1; }
+.cal-status { padding: 40px 20px; text-align: center; color: #64748b; font-size: 12px; }
 </style>
 </head>
 <body>
@@ -309,6 +346,13 @@ let projectedNextMonth = null;
 let activeTab = 'tshirts';
 let searchTerm = '';
 const openProducts = new Set();
+
+// ---- Value calendar tab ----
+let calSummaryByDate = {};
+let calDetailCache = {};
+let calViewYear = null;
+let calViewMonth = null; // 0-indexed
+let calOverlayEl = null;
 
 function $(id) { return document.getElementById(id); }
 function esc(v) { return String(v==null?'':v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
@@ -546,6 +590,144 @@ function bindExpandButtons(container) {
   };
 }
 
+async function loadCalendarSummary() {
+  try {
+    const { data, error } = await sbValue.from('daily_stock_value_summary').select('*').order('snapshot_date');
+    if (error) throw error;
+    calSummaryByDate = {};
+    (data||[]).forEach(row => { calSummaryByDate[row.snapshot_date] = row; });
+  } catch(e) {
+    console.error('Calendar summary load failed', e);
+  }
+}
+
+function ensureCalOverlay() {
+  if (calOverlayEl) return calOverlayEl;
+  calOverlayEl = document.createElement('div');
+  calOverlayEl.className = 'cal-modal-overlay';
+  calOverlayEl.innerHTML = '<div class="cal-modal" id="calModal"></div>';
+  document.body.appendChild(calOverlayEl);
+  calOverlayEl.addEventListener('click', e => { if (e.target === calOverlayEl) closeCalDay(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeCalDay(); });
+  return calOverlayEl;
+}
+
+function closeCalDay() {
+  if (calOverlayEl) calOverlayEl.classList.remove('open');
+}
+
+async function openCalDay(dateStr) {
+  const summary = calSummaryByDate[dateStr];
+  if (!summary) return;
+  ensureCalOverlay();
+  const modal = $('calModal');
+  modal.innerHTML = '<div class="cal-status">Loading snapshot…</div>';
+  calOverlayEl.classList.add('open');
+
+  if (!calDetailCache[dateStr]) {
+    try {
+      const { data, error } = await sbValue.from('inventory_value_history')
+        .select('sku,product_name,qty_on_hand,working_stock_qty,total_qty,unit_cost,total_value')
+        .eq('snapshot_date', dateStr)
+        .order('total_value', { ascending: false, nullsFirst: false });
+      if (error) throw error;
+      calDetailCache[dateStr] = data || [];
+    } catch(e) {
+      modal.innerHTML = '<div class="cal-status">Could not load detail: '+esc(e.message||String(e))+'</div>';
+      return;
+    }
+  }
+  const rows = calDetailCache[dateStr];
+  const topRows = rows.filter(r => r.total_value).slice(0,8);
+  const dateObj = new Date(dateStr+'T00:00:00');
+  const niceDate = dateObj.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+  modal.innerHTML = `
+    <div class="cal-modal-head">
+      <div><h3>${niceDate}</h3><div class="sub">${num(summary.sku_count)} SKUs recorded</div></div>
+      <button class="cal-modal-close" id="calModalClose">&times;</button>
+    </div>
+    <p class="cal-modal-total">${money(summary.total_value)}</p>
+    <p class="cal-modal-total-label">Total stock value on hand</p>
+    <div class="cal-breakdown">
+      <div><div class="k">On-hand stock</div><div class="v">${money(summary.on_hand_value)}</div></div>
+      <div><div class="k">Working stock</div><div class="v">${money(summary.working_stock_value)}</div></div>
+      <div><div class="k">Total units</div><div class="v">${num(summary.total_qty)}</div></div>
+      <div><div class="k">On-hand / working units</div><div class="v">${num(summary.on_hand_qty)} / ${num(summary.working_stock_qty)}</div></div>
+    </div>
+    <div class="cal-top-skus"><strong>Top value SKUs this day:</strong><br>
+      ${topRows.map(r => `${esc(r.sku)} — ${esc(r.product_name||'')} — ${num(r.total_qty)} units @ ${money(r.unit_cost)} = ${money(r.total_value)}`).join('<br>')}
+    </div>`;
+  $('calModalClose').onclick = closeCalDay;
+}
+
+function renderCalendarView() {
+  const el = $('calendarView');
+  if (!el) return;
+
+  if (Object.keys(calSummaryByDate).length === 0) {
+    el.innerHTML = '<div class="cal-status">Loading stock value history…</div>';
+    loadCalendarSummary().then(() => { if (activeTab === 'calendar') renderCalendarView(); });
+    return;
+  }
+
+  const today = new Date();
+  if (calViewYear === null) { calViewYear = today.getFullYear(); calViewMonth = today.getMonth(); }
+
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const firstOfMonth = new Date(calViewYear, calViewMonth, 1);
+  const startWeekday = firstOfMonth.getDay();
+  const daysInMonth = new Date(calViewYear, calViewMonth+1, 0).getDate();
+  const todayStr = today.toISOString().slice(0,10);
+
+  let monthRows = [];
+  let gridHtml = '';
+  for (let i=0; i<startWeekday; i++) gridHtml += '<div class="cal-day empty"></div>';
+  for (let d=1; d<=daysInMonth; d++) {
+    const dateStr = calViewYear + '-' + String(calViewMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    const rec = calSummaryByDate[dateStr];
+    const isToday = dateStr === todayStr;
+    if (rec) monthRows.push(rec);
+    if (rec) {
+      gridHtml += `<div class="cal-day has-data${isToday?' today':''}" data-date="${dateStr}"><span class="cal-daynum">${d}</span><span class="cal-dayval">${money(rec.total_value)}</span></div>`;
+    } else {
+      gridHtml += `<div class="cal-day${isToday?' today':''}"><span class="cal-daynum">${d}</span><span class="cal-nodot"></span></div>`;
+    }
+  }
+
+  let summaryHtml = '';
+  if (monthRows.length) {
+    const sorted = [...monthRows].sort((a,b) => a.snapshot_date < b.snapshot_date ? 1 : -1);
+    const high = monthRows.reduce((m,r) => Number(r.total_value) > Number(m.total_value) ? r : m);
+    const low = monthRows.reduce((m,r) => Number(r.total_value) < Number(m.total_value) ? r : m);
+    summaryHtml = `
+      <div class="cal-summary-grid">
+        <div class="cal-summary-cell"><span>Days recorded</span><strong>${monthRows.length}</strong></div>
+        <div class="cal-summary-cell"><span>Latest value</span><strong class="accent">${money(sorted[0].total_value)}</strong></div>
+        <div class="cal-summary-cell"><span>Month high</span><strong>${money(high.total_value)}</strong></div>
+        <div class="cal-summary-cell"><span>Month low</span><strong>${money(low.total_value)}</strong></div>
+      </div>`;
+  }
+
+  el.innerHTML = `
+    ${summaryHtml}
+    <div class="cal-toolbar">
+      <button id="calPrev">&larr;</button>
+      <div class="cal-month-label">${monthNames[calViewMonth]} ${calViewYear}</div>
+      <button id="calNext">&rarr;</button>
+    </div>
+    <div class="cal-wrap">
+      <div class="cal-weekdays"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+      <div class="cal-grid">${gridHtml}</div>
+    </div>`;
+
+  $('calPrev').onclick = () => { calViewMonth--; if (calViewMonth<0){calViewMonth=11;calViewYear--;} renderCalendarView(); };
+  $('calNext').onclick = () => { calViewMonth++; if (calViewMonth>11){calViewMonth=0;calViewYear++;} renderCalendarView(); };
+  el.querySelectorAll('.cal-day.has-data').forEach(cell => {
+    cell.addEventListener('click', () => openCalDay(cell.dataset.date));
+  });
+}
+
 function renderTabs() {
   const skusByCat = {};
   for (const r of allRows) {
@@ -561,7 +743,7 @@ function renderTabs() {
     const count = (skusByCat[cat.id]||[]).length;
     if (count === 0) return '';
     return `<button class="tab-btn ${cat.id===activeTab?'active':''}" data-tab="${cat.id}">${cat.label}<span class="tab-count">${count}</span></button>`;
-  }).join('');
+  }).join('') + `<button class="tab-btn ${activeTab==='calendar'?'active':''}" data-tab="calendar">📅 Value Calendar</button>`;
 
   tabPages.innerHTML = CATEGORIES.map(cat => {
     const rows = skusByCat[cat.id] || [];
@@ -575,7 +757,9 @@ function renderTabs() {
       ? groups.map(g => buildProductCard(g)).join('')
       : '<div class="empty-state">No products match your search.</div>';
     return `<div class="tab-page ${cat.id===activeTab?'active':''}" data-tab-page="${cat.id}">${cardsHtml}</div>`;
-  }).join('');
+  }).join('') + `<div class="tab-page ${activeTab==='calendar'?'active':''}" data-tab-page="calendar"><div id="calendarView"></div></div>`;
+
+  if (activeTab === 'calendar') renderCalendarView();
 
   tabBar.querySelectorAll('.tab-btn').forEach(btn => {
     btn.onclick = () => {
@@ -585,6 +769,7 @@ function renderTabs() {
       tabPages.querySelectorAll('.tab-page').forEach(p=>p.classList.remove('active'));
       const page = tabPages.querySelector(`[data-tab-page="${activeTab}"]`);
       if (page) { page.classList.add('active'); bindToggles(page); }
+      if (activeTab === 'calendar') renderCalendarView();
     };
   });
 
@@ -708,6 +893,7 @@ async function load() {
     allRows = data || [];
 
     await loadValueData();
+    await loadCalendarSummary();
 
     render();
     status('Connected', true);
