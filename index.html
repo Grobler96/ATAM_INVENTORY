@@ -229,6 +229,7 @@ body.chat-open .main { margin-right: 420px; transition: margin-right 0.22s ease;
     <div class="kpi-card warn"><span>Critically low (&le;2)</span><strong id="kpiLow">&mdash;</strong></div>
     <div class="kpi-card"><span>Products tracked</span><strong id="kpiProducts">&mdash;</strong></div>
     <div class="kpi-card money"><span>Total stock value</span><strong id="kpiTotalValue">&mdash;</strong><small id="kpiTotalValueSub">&nbsp;</small></div>
+    <div class="kpi-card money"><span>On-hand stock value</span><strong id="kpiOnHandValue">&mdash;</strong><small id="kpiOnHandValueSub">&nbsp;</small></div>
     <div class="kpi-card money"><span>Working stock value</span><strong id="kpiWorkingValue">&mdash;</strong><small id="kpiWorkingValueSub">&nbsp;</small></div>
     <div class="kpi-card money" style="border-color:rgba(167,139,250,0.3)"><span>Projected value (next month)</span><strong id="kpiProjectedValue">&mdash;</strong><small id="kpiProjectedValueSub">&nbsp;</small></div>
   </div>
@@ -797,6 +798,8 @@ function render() {
 
   $('kpiTotalValue').innerHTML = money(valueTotals.total);
   $('kpiTotalValueSub').textContent = 'On-hand + working stock';
+  $('kpiOnHandValue').innerHTML = money(valueTotals.onHand);
+  $('kpiOnHandValueSub').textContent = 'Sat on the shelf, unallocated';
   $('kpiWorkingValue').innerHTML = money(valueTotals.working);
   $('kpiWorkingValueSub').textContent = 'Tied up in unshipped orders';
 
